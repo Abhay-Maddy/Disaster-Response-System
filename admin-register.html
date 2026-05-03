@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Responder Registration — AI Disaster Response</title>
+  <meta name="description" content="Government clearance portal for responder registration.">
+  <script src="js/theme-init.js"></script>
+  <link rel="stylesheet" crossorigin href="/Disaster-Response-System/assets/styles-Bq63Jtsh.css">
+</head>
+<body>
+  <div class="mesh-bg"></div>
+  <div id="toast-container"></div>
+  <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle theme">☀️</button>
+
+  <div class="auth-page">
+    <div class="auth-container">
+
+      <!-- Brand -->
+      <div class="auth-brand" style="background:linear-gradient(135deg,rgba(239,68,68,0.2),rgba(124,58,237,0.25));">
+        <div class="auth-brand-icon">🏛️</div>
+        <h2>Government Clearance Portal</h2>
+        <p>Authorized registration for rescue personnel, government officers, and emergency dispatchers.</p>
+        <ul class="auth-features">
+          <li>Access live emergency feed</li>
+          <li>Dispatch response teams</li>
+          <li>Manage incident reports</li>
+          <li>View citizen activities</li>
+        </ul>
+        <div style="margin-top:1.5rem; padding:12px 16px; background:rgba(239,68,68,0.12); border-radius:10px; border:1px solid rgba(239,68,68,0.25); text-align:left;">
+          <div style="font-size:0.75rem; color:var(--danger-light); font-weight:700; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px;">🔑 Demo Clearance Code</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:1.5rem; font-weight:700; color:var(--text-primary); letter-spacing:0.3em;">1234</div>
+          <div style="font-size:0.72rem; color:var(--text-tertiary); margin-top:4px;">In production, this is issued by the Ministry of Emergency Services</div>
+        </div>
+      </div>
+
+      <!-- Form -->
+      <div class="auth-form-side">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:0.25rem;">
+          <span style="font-size:1.5rem;">🔒</span>
+          <h2 style="color:var(--danger-light);">Responder Registration</h2>
+        </div>
+        <p style="margin-bottom:1.5rem; font-size:0.875rem;">Fill in your official government credentials below</p>
+
+        <form id="admin-register-form">
+          <div class="form-group">
+            <label class="form-label">Full Officer Name</label>
+            <input type="text" id="admin-name" class="form-control" placeholder="Officer Jane Smith" required>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Admin ID / Badge No.</label>
+              <input type="text" id="admin-badge" class="form-control" placeholder="RESCUE-001" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Region / Zone</label>
+              <input type="text" id="admin-region" class="form-control" placeholder="North Zone" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Department / Agency</label>
+            <select id="admin-dept" class="form-control" required>
+              <option value="" disabled selected>Select department…</option>
+              <option value="National Guard">🪖 National Guard</option>
+              <option value="Police Emergency">👮 Police Emergency Unit</option>
+              <option value="Fire Department">🚒 Fire Department</option>
+              <option value="Medical Response">🏥 Medical Response Team</option>
+              <option value="Disaster Management">🌊 Disaster Management Authority</option>
+              <option value="Civil Defense">🛡️ Civil Defense</option>
+              <option value="Other">⚙️ Other Government Agency</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Secure Passcode</label>
+            <div class="input-icon-wrapper">
+              <input type="password" id="admin-password" class="form-control" placeholder="Create a strong passcode" required oninput="checkPasswordStrength(this.value)">
+              <button type="button" class="input-eye-btn" id="admin-eye" onclick="togglePassword('admin-password','admin-eye')">👁️</button>
+            </div>
+            <div class="strength-bar"><div class="strength-bar-fill strength-0" id="strength-fill"></div></div>
+            <div style="display:flex; justify-content:space-between; margin-top:4px;">
+              <small class="form-hint">Use uppercase, numbers & symbols</small>
+              <small id="strength-label" style="font-weight:600"></small>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Government Security Clearance Code</label>
+            <input type="password" id="admin-clearance" class="form-control" placeholder="Enter secret clearance code" required>
+            <div class="form-hint">Issued by the Ministry of Emergency Services. Demo code: 1234</div>
+          </div>
+
+          <button type="submit" class="btn btn-danger btn-block btn-lg" style="margin-top:0.5rem;">
+            🔒 Register Government Account
+          </button>
+        </form>
+
+        <div class="auth-divider">or</div>
+        <div class="auth-footer-links">
+          Already registered? <a href="admin.html" style="color:var(--danger);">Login to Mission Control</a>
+          <br><br>
+          <a href="login.html" style="font-size:0.8rem;">← Back to Citizen Login</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/script.js"></script>
+  
+  <script src="js/admin-register-inline.js"></script>
+</body>
+</html>
