@@ -1,27 +1,22 @@
-name: Deploy to GitHub Pages
+name: Build Frontend
 
 on:
   push:
     branches:
-      - main   # Trigger on every push to main
-
-  # Allow manual runs from the Actions tab
+      - main
   workflow_dispatch:
 
-# Grant the workflow permission to push to gh-pages
 permissions:
   contents: write
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Check out the repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Set up Node.js
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
@@ -29,22 +24,20 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      # 3. Install frontend dependencies
       - name: Install dependencies
         working-directory: frontend
         run: npm ci
 
-      # 4. Build the production bundle
-      - name: Build
+      - name: Build (outputs to repo root)
         working-directory: frontend
         run: npm run build
 
-      # 5. Deploy dist/ folder to gh-pages branch
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: frontend/dist
-          # This creates a .nojekyll file so GitHub doesn't ignore folders
-          # starting with underscore (like _assets)
-          enable_jekyll: false
+      # Commit the freshly-built files back to main so GitHub Pages
+      # (source: main branch / root) always serves the latest build.
+      - name: Commit built files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html login.html register.html admin.html admin-register.html assets/ favicon.svg icons.svg
+          git diff --cached --quiet || git commit -m "chore: auto-build frontend [skip ci]"
+          git push

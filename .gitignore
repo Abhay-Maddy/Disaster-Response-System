@@ -13,9 +13,12 @@
 *.sln
 *.sw?
 
-# Root-level node_modules (not needed — the real one is inside frontend/)
+# Root-level node_modules (the real one is inside frontend/)
 node_modules
 
-# The /docs folder is the production build — do NOT ignore it,
-# GitHub Pages serves from this folder (main branch → /docs)
-# docs/  <-- intentionally NOT ignored
+# The /docs folder is no longer used (build now outputs to repo root)
+docs/
+
+# DO NOT ignore the following — they are the built site served by GitHub Pages:
+# index.html, login.html, register.html, admin.html, admin-register.html
+# assets/  favicon.svg  icons.svg

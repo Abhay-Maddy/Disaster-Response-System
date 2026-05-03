@@ -8,10 +8,12 @@ export default defineConfig({
   base: '/Disaster-Response-System/',
 
   build: {
-    // Output into /docs at the repo root so GitHub Pages can serve
-    // from: main branch → /docs folder (no extra branch needed)
-    outDir: '../docs',
-    emptyOutDir: true,
+    // Output built files to the repo root so GitHub Pages (main branch, / root)
+    // serves index.html directly without any extra settings.
+    // NOTE: emptyOutDir is false so backend/ml_model/frontend source folders
+    //       are never accidentally deleted during a build.
+    outDir: '../',
+    emptyOutDir: false,
 
     rollupOptions: {
       input: {
