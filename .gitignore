@@ -1,0 +1,21 @@
+# Environment files
+.env
+*.local
+
+# Editor directories
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Root-level node_modules (not needed — the real one is inside frontend/)
+node_modules
+
+# The /docs folder is the production build — do NOT ignore it,
+# GitHub Pages serves from this folder (main branch → /docs)
+# docs/  <-- intentionally NOT ignored

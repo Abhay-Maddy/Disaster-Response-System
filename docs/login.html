@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — AI Disaster Response</title>
+  <meta name="description" content="Secure login to the AI Disaster Response Coordination System.">
+  <script src="js/theme-init.js"></script>
+  <link rel="stylesheet" crossorigin href="/Disaster-Response-System/assets/styles-Bq63Jtsh.css">
+</head>
+<body>
+  <div class="mesh-bg"></div>
+  <div id="toast-container"></div>
+  <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle theme">&#9788;</button>
+
+  <div class="auth-page">
+    <div class="auth-container">
+
+      <!-- Brand Panel -->
+      <div class="auth-brand">
+        <div class="auth-brand-label">Emergency Network</div>
+        <div class="auth-brand-logo">AI</div>
+        <h2>Welcome Back</h2>
+        <p>Access the national AI-powered emergency coordination platform. Your safety is our priority.</p>
+        <div class="auth-system-status">
+          <div class="auth-system-status-label">System Status</div>
+          <div class="auth-system-status-row">
+            <div class="status-dot"></div>
+            <span class="auth-system-status-text">All systems operational</span>
+          </div>
+          <div class="auth-system-status-sub">48 responders active · 14 routes open</div>
+        </div>
+      </div>
+
+      <!-- Login Form Side -->
+      <div class="auth-form-side">
+
+        <!-- Tab Switcher -->
+        <div class="auth-tab-switch">
+          <button class="auth-tab active" id="tab-citizen" onclick="switchLoginTab('citizen')">Citizen</button>
+          <button class="auth-tab" id="tab-admin" onclick="switchLoginTab('admin')">Responder</button>
+        </div>
+
+        <!-- Citizen Login -->
+        <div id="citizen-login">
+          <h2 style="margin-bottom:0.25rem">Sign In</h2>
+          <p style="margin-bottom:1.5rem; font-size:0.875rem">Enter your registered credentials</p>
+
+          <form id="login-form">
+            <div class="form-group">
+              <label class="form-label">Email Address</label>
+              <input type="email" id="login-email" class="form-control" placeholder="your@email.com" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <div class="input-icon-wrapper">
+                <input type="password" id="login-password" class="form-control" placeholder="Enter your password" required>
+                <button type="button" class="input-eye-btn" id="login-eye" onclick="togglePassword('login-password','login-eye')">&#128065;</button>
+              </div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+              <label style="display:flex; align-items:center; gap:6px; font-size:0.82rem; color:var(--text-secondary); cursor:pointer;">
+                <input type="checkbox" style="width:auto; accent-color:var(--primary);"> Remember me
+              </label>
+              <a href="#" style="font-size:0.82rem;">Forgot password?</a>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block btn-lg">Sign In to Dashboard</button>
+          </form>
+        </div>
+
+        <!-- Admin Redirect -->
+        <div id="admin-redirect" style="display:none;">
+          <h2 style="margin-bottom:0.25rem; color:var(--danger)">Responder Login</h2>
+          <p style="margin-bottom:1.5rem; font-size:0.875rem">Government and rescue personnel only</p>
+          <div style="padding:1.25rem; border-radius:var(--radius-md); background:rgba(239,68,68,0.07); border:1px solid rgba(239,68,68,0.18); text-align:center; margin-bottom:1.5rem;">
+            <p style="font-size:0.875rem; margin:0; color:var(--text-secondary);">Admin panel has a dedicated secure login interface.</p>
+          </div>
+          <a href="admin.html" class="btn btn-danger btn-block btn-lg">Go to Command Center</a>
+        </div>
+
+        <div class="auth-divider">or</div>
+        <div class="auth-footer-links">
+          New to the system? <a href="register.html">Create account</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/script.js"></script>
+  
+  <script src="js/login-inline.js"></script>
+</body>
+</html>
