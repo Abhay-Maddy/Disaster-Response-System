@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Command Center — AI Disaster Response</title>
+  <meta name="description" content="User dashboard for the AI Disaster Response Coordination System.">
+  <link rel="stylesheet" href="css/styles.css">
+  <!-- Leaflet.js for live map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="css/dashboard-inline.css">
+  <script src="js/theme-init.js"></script>
+</head>
+
+<body>
+  <div class="mesh-bg"></div>
+  <div id="toast-container"></div>
+  <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle theme">&#9788;</button>
+
+  <div class="dashboard-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <a href="#" class="sidebar-logo">
+        <div class="sidebar-logo-icon">AI</div>
+        <div class="sidebar-logo-text">
+          <span class="sidebar-logo-title">AI Responder</span>
+          <span class="sidebar-logo-sub">Emergency Network</span>
+        </div>
+      </a>
+
+      <div class="sidebar-section-label">Navigation</div>
+      <ul class="nav-list">
+        <li><button class="nav-item active" data-section="sec-home" onclick="switchSection('sec-home')"><span
+              class="nav-icon"></span><span>Home</span></button></li>
+        <li><button class="nav-item" data-section="sec-map" onclick="switchSection('sec-map')"><span
+              class="nav-icon"></span><span>Live Map</span></button></li>
+        <li><button class="nav-item" data-section="sec-sos" onclick="switchSection('sec-sos')"><span
+              class="nav-icon"></span><span>SOS Emergency</span></button></li>
+        <li><button class="nav-item" data-section="sec-report" onclick="switchSection('sec-report')"><span
+              class="nav-icon"></span><span>Report Incident</span></button></li>
+        <li><button class="nav-item" data-section="sec-community" onclick="switchSection('sec-community')"><span
+              class="nav-icon"></span><span>Community Feed</span></button></li>
+        <li><button class="nav-item" data-section="sec-alerts" onclick="switchSection('sec-alerts')"><span
+              class="nav-icon"></span><span>Active Alerts</span></button></li>
+        <li><button class="nav-item" data-section="sec-profile" onclick="switchSection('sec-profile')"><span
+              class="nav-icon"></span><span>My Profile</span></button></li>
+      </ul>
+
+      <div class="sidebar-section-label" style="margin-top:0.75rem;">Quick Links</div>
+      <ul class="nav-list">
+        <li><a href="admin.html" class="nav-item" style="text-decoration:none;"><span
+              class="nav-icon"></span><span>Admin Panel</span></a></li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="user-widget">
+          <div class="user-avatar" id="user-initial">U</div>
+          <div class="user-info">
+            <div class="user-name" id="user-greeting">Loading…</div>
+            <div class="user-role">Verified Citizen</div>
+          </div>
+        </div>
+        <div class="credit-bar-wrapper">
+          <div class="credit-label">
+            <span>Credits</span>
+            <span id="credit-label-val">100</span>/100
+          </div>
+          <div class="credit-bar">
+            <div class="credit-bar-fill" id="credit-bar-fill" style="width:100%"></div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-block" style="margin-top:8px; font-size:0.8rem;" onclick="logout()">Log
+          Out</button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+
+      <!-- Topbar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="status-dot"></div>
+          <div class="breadcrumb">Command Center / <strong id="breadcrumb-page">Home</strong></div>
+        </div>
+        <div class="topbar-right">
+          <div class="live-clock mono" id="live-clock">--:--:--</div>
+          <button class="btn btn-danger btn-sm" onclick="switchSection('sec-sos')">SOS</button>
+        </div>
+      </header>
+
+      <div class="page-content">
+
+        <!-- Home Section -->
+        <section id="sec-home" class="section active">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
+            <div>
+              <h1>Good Evening, <span id="user-greeting-h1"
+                  style="background:linear-gradient(135deg,var(--primary-light),var(--violet-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">User</span>
+              </h1>
+              <p style="margin-top:4px;">Stay informed. Stay safe. Responders are standing by.</p>
+            </div>
+            <button class="btn btn-primary" onclick="simulateDisasterPrediction()">Simulate AI Alert</button>
+          </div>
+
+          <div id="prediction-alerts"></div>
+
+          <!-- Stats Row -->
+          <div class="stats-grid">
+            <div class="glass stat-card" style="--card-color: rgba(239,68,68,0.2);">
+              <div class="stat-icon">Active Disasters</div>
+              <div class="stat-value" id="stat-disasters">0</div>
+              <div class="stat-label">Nearby Incidents</div>
+              <div class="stat-change up">+2 since yesterday</div>
+            </div>
+            <div class="glass stat-card" style="--card-color: rgba(16,185,129,0.2);">
+              <div class="stat-icon">Responders</div>
+              <div class="stat-value" id="stat-responders">0</div>
+              <div class="stat-label">Currently Online</div>
+              <div class="stat-change up">+12 on standby</div>
+            </div>
+            <div class="glass stat-card" style="--card-color: rgba(245,158,11,0.2);">
+              <div class="stat-icon">Alerts</div>
+              <div class="stat-value" id="stat-alerts">0</div>
+              <div class="stat-label">Active in Region</div>
+              <div class="stat-change down">-3 resolved today</div>
+            </div>
+          </div>
+
+          <!-- Dashboard Grid -->
+          <div class="grid-2">
+            <!-- Radar Map -->
+            <div class="glass" style="padding:1.5rem;">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Regional Threat Radar</div>
+                  <div class="card-subtitle">Live AI-analyzed feed</div>
+                </div>
+                <span class="badge badge-emergency badge-dot">LIVE</span>
+              </div>
+              <div class="radar-map">
+                <div class="radar-grid-line" style="width:80%;height:80%; top:10%; left:10%;"></div>
+                <div class="radar-grid-line" style="width:55%;height:55%; top:22.5%; left:22.5%;"></div>
+                <div class="radar-grid-line" style="width:30%;height:30%; top:35%; left:35%;"></div>
+                <div class="radar-sweep"></div>
+                <div class="radar-dot red" style="top:35%; left:60%;"></div>
+                <div class="radar-dot yellow" style="top:65%; left:25%;"></div>
+                <div class="radar-dot red" style="top:20%; left:40%;"></div>
+              </div>
+            </div>
+
+            <!-- Disaster Bulletin -->
+            <div class="glass" style="padding:1.5rem;">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Disaster Bulletin</div>
+                  <div class="card-subtitle">Today's incident summary</div>
+                </div>
+              </div>
+              <div class="news-item">
+                <div class="news-dot"></div>
+                <div>
+                  <div class="news-meta">Today · 10:30 AM</div>
+                  <div class="news-text">Minor aftershocks detected 40km North. AI risk: Low. No evacuation needed.
+                  </div>
+                </div>
+              </div>
+              <div class="news-item">
+                <div class="news-dot" style="background:var(--warning);"></div>
+                <div>
+                  <div class="news-meta" style="color:var(--warning);">Yesterday · 2:15 PM</div>
+                  <div class="news-text">Highway 44 flooded due to heavy rainfall. Road closed. Use alternative routes.
+                  </div>
+                </div>
+              </div>
+              <div class="news-item">
+                <div class="news-dot" style="background:var(--danger);"></div>
+                <div>
+                  <div class="news-meta" style="color:var(--danger);">2 Days Ago · 9:00 AM</div>
+                  <div class="news-text">AI model predicts elevated wildfire risk this weekend. 78% confidence.</div>
+                </div>
+              </div>
+              <div class="news-item">
+                <div class="news-dot" style="background:var(--success);"></div>
+                <div>
+                  <div class="news-meta" style="color:var(--success);">3 Days Ago · 4:30 PM</div>
+                  <div class="news-text">Cyclone warning lifted. All zones cleared. Normal operations resumed.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div style="margin-top:1.25rem; display:flex; gap:0.75rem; flex-wrap:wrap;">
+            <button class="btn btn-danger" onclick="switchSection('sec-sos')">Open SOS Panel</button>
+            <button class="btn btn-primary" onclick="switchSection('sec-report')">Report Incident</button>
+            <button class="btn btn-ghost" onclick="switchSection('sec-alerts')">View AI Alerts</button>
+          </div>
+        </section>
+
+        <!-- SOS Section -->
+        <section id="sec-sos" class="section">
+          <h1 style="margin-bottom:0.25rem;">SOS Emergency Override</h1>
+          <p style="margin-bottom:1.5rem;">Invoke only during a real, life-threatening emergency.</p>
+
+          <div style="display:flex; gap:1.25rem; flex-wrap:wrap;">
+            <!-- SOS Button Card -->
+            <div class="glass" style="padding:2rem; flex:1; min-width:280px;">
+              <div class="card-header">
+                <div>
+                  <div class="card-title" style="color:var(--danger-light);">Emergency Help Button</div>
+                  <div class="card-subtitle">Dispatches responders to your GPS location</div>
+                </div>
+              </div>
+
+              <div class="sos-section">
+                <div class="sos-rings">
+                  <div class="sos-ring"></div>
+                  <div class="sos-ring"></div>
+                  <div class="sos-ring"></div>
+                  <button class="sos-btn-main" id="sos-btn" onclick="triggerSOS()">
+                    <span class="sos-btn-label">SOS</span>
+                    <span class="sos-btn-sub">EMERGENCY</span>
+                  </button>
+                </div>
+                <p id="sos-tip"
+                  style="font-size:0.78rem; color:var(--text-tertiary); text-align:center; max-width:240px;">
+                  Tap to trigger. Misuse = -20 credits.
+                </p>
+              </div>
+
+              <div
+                style="padding:1rem; background:rgba(239,68,68,0.06); border-radius:var(--radius-md); border:1px solid rgba(239,68,68,0.15);">
+                <p style="font-size:0.78rem; color:var(--danger-light); margin:0;">
+                  <strong>Legal Warning:</strong> Misuse of the emergency SOS system is a punishable offence under the
+                  Emergency Response Act. Each false alarm deducts 20 credits. Zero credits means permanent SOS disable.
+                </p>
+              </div>
+            </div>
+
+            <!-- Credit Meter Card -->
+            <div class="glass" style="padding:2rem; min-width:240px;">
+              <div class="card-title" style="margin-bottom:1rem;">Credit Score</div>
+
+              <div class="credit-arc-wrapper">
+                <svg viewBox="0 0 120 70" style="width:160px; height:100px;">
+                  <path class="credit-arc-track" d="M 15 65 A 50 50 0 0 1 105 65" stroke-dasharray="160"
+                    stroke-dashoffset="0" />
+                  <path class="credit-arc-fill" id="credit-arc-fill" d="M 15 65 A 50 50 0 0 1 105 65"
+                    stroke-dasharray="160" stroke-dashoffset="0" />
+                  <text x="60" y="58" text-anchor="middle" font-size="22" font-weight="800" fill="var(--text-primary)"
+                    font-family="Inter,sans-serif" id="credit-count">100</text>
+                </svg>
+                <div class="credit-arc-label">Available Credits</div>
+              </div>
+
+              <div style="margin-top:1.25rem; display:flex; flex-direction:column; gap:6px; font-size:0.82rem;">
+                <div
+                  style="display:flex; justify-content:space-between; padding:8px 10px; background:var(--glass-bg); border-radius:7px;">
+                  <span style="color:var(--text-secondary);">Starting Credits</span><strong>100</strong>
+                </div>
+                <div
+                  style="display:flex; justify-content:space-between; padding:8px 10px; background:rgba(239,68,68,0.06); border-radius:7px;">
+                  <span style="color:var(--text-secondary);">False Alarm Penalty</span><strong
+                    style="color:var(--danger);">-20</strong>
+                </div>
+                <div
+                  style="display:flex; justify-content:space-between; padding:8px 10px; background:rgba(16,185,129,0.06); border-radius:7px;">
+                  <span style="color:var(--text-secondary);">Real Emergency</span><strong
+                    style="color:var(--success);">+0 (safe)</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Report Incident Section -->
+        <section id="sec-report" class="section">
+          <h1 style="margin-bottom:0.25rem;">Report an Incident</h1>
+          <p style="margin-bottom:1.5rem;">Help authorities respond faster by providing accurate information.</p>
+
+          <div class="glass" style="padding:1.5rem; max-width:640px;">
+            <form id="incident-form">
+
+              <!-- Auto-filled system fields -->
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:1.1rem;">
+                <div>
+                  <div class="form-label">Reported At</div>
+                  <div
+                    style="display:flex; align-items:center; gap:8px; padding:10px 14px; background:rgba(16,185,129,0.07); border:1px solid rgba(16,185,129,0.2); border-radius:var(--radius-md);">
+                    <span id="report-timestamp"
+                      style="font-size:0.85rem; font-family:var(--font-mono); color:var(--primary-light);">—</span>
+                  </div>
+                  <div class="form-hint">Auto-filled by system</div>
+                </div>
+                <div>
+                  <div class="form-label" style="display:flex; align-items:center; justify-content:space-between;">
+                    <span>GPS Coordinates</span>
+                    <button type="button" onclick="detectLocation()"
+                      style="background:none; border:none; color:var(--primary); font-size:0.72rem; font-weight:600; cursor:pointer; font-family:var(--font); padding:0;">Detect
+                      Again</button>
+                  </div>
+                  <div
+                    style="display:flex; align-items:center; gap:8px; padding:10px 14px; background:rgba(16,185,129,0.07); border:1px solid rgba(16,185,129,0.2); border-radius:var(--radius-md);">
+                    <span id="report-gps"
+                      style="font-size:0.82rem; font-family:var(--font-mono); color:var(--primary-light);">Detecting…</span>
+                  </div>
+                  <div class="form-hint" id="report-gps-address" style="color:var(--text-tertiary);">Fetching address…
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Type of Emergency</label>
+                <div class="type-chips">
+                  <button type="button" class="type-chip" data-type="Fire"
+                    onclick="selectIncidentType('Fire')">Fire</button>
+                  <button type="button" class="type-chip" data-type="Flood"
+                    onclick="selectIncidentType('Flood')">Flood</button>
+                  <button type="button" class="type-chip" data-type="Accident"
+                    onclick="selectIncidentType('Accident')">Accident</button>
+                  <button type="button" class="type-chip" data-type="Medical"
+                    onclick="selectIncidentType('Medical')">Medical</button>
+                  <button type="button" class="type-chip" data-type="Other"
+                    onclick="selectIncidentType('Other')">Other</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Location / Landmark</label>
+                <input type="text" id="incident-location" class="form-control"
+                  placeholder="e.g. Near Central Park, Gate 3" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Severity Level</label>
+                <select id="incident-severity" class="form-control" required>
+                  <option value="" disabled selected>Select severity…</option>
+                  <option value="Low">Low — Minor, no immediate danger</option>
+                  <option value="Medium">Medium — Needs attention soon</option>
+                  <option value="High">High — Urgent response required</option>
+                  <option value="Critical">Critical — Life-threatening situation</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Detailed Description</label>
+                <textarea id="incident-desc" class="form-control"
+                  placeholder="Describe what you see, how many people are affected, what resources are needed…"
+                  required></textarea>
+              </div>
+
+              <!-- Image Upload -->
+              <div class="form-group">
+                <label class="form-label">Verification Photo <span
+                    style="color:var(--text-tertiary); font-weight:400; text-transform:none; letter-spacing:0;">(optional
+                    but recommended)</span></label>
+                <div id="upload-zone" onclick="document.getElementById('incident-image').click()"
+                  style="border:2px dashed var(--glass-border); border-radius:var(--radius-md); padding:1.5rem; text-align:center; cursor:pointer; transition:var(--transition); background:var(--glass-bg);"
+                  onmouseover="this.style.borderColor='var(--primary)'"
+                  onmouseout="this.style.borderColor='var(--glass-border)'">
+                  <div style="font-size:0.875rem; color:var(--text-secondary); margin-bottom:4px;">Click to upload a
+                    photo of the incident</div>
+                  <div style="font-size:0.72rem; color:var(--text-tertiary);">JPG, PNG, WEBP — Max 5MB</div>
+                  <input type="file" id="incident-image" accept="image/*" style="display:none;"
+                    onchange="handleImageUpload(event)">
+                </div>
+                <!-- Preview -->
+                <div id="image-preview-box" style="display:none; margin-top:10px; position:relative;">
+                  <img id="image-preview" src="" alt="Preview"
+                    style="width:100%; max-height:200px; object-fit:cover; border-radius:var(--radius-md); border:1px solid var(--glass-border);">
+                  <button type="button" onclick="removeImage()"
+                    style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.6); border:none; color:white; border-radius:50%; width:26px; height:26px; cursor:pointer; font-size:0.8rem; display:flex; align-items:center; justify-content:center;">x</button>
+                  <div id="image-name" style="font-size:0.72rem; color:var(--text-tertiary); margin-top:5px;"></div>
+                </div>
+              </div>
+
+              <div style="display:flex; gap:8px;">
+                <button type="submit" class="btn btn-primary" style="flex:1;">Submit Report</button>
+                <button type="reset" class="btn btn-ghost" onclick="resetReportForm()">Clear</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- Alerts Section -->
+        <section id="sec-alerts" class="section">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
+            <div>
+              <h1 style="margin-bottom:0.25rem;">AI Threat Predictions</h1>
+              <p>Real-time alerts generated by the neural threat detection model.</p>
+            </div>
+            <button class="btn btn-danger" onclick="simulateDisasterPrediction(); switchSection('sec-alerts');">Simulate
+              New Alert</button>
+          </div>
+
+          <div class="alert-banner info">
+            <div class="alert-banner-icon">AI</div>
+            <div class="alert-banner-content">
+              <div class="alert-banner-title">AI Engine Status: Active</div>
+              <div class="alert-banner-body">Monitoring 14 seismic zones · 8 weather stations · 3 flood gauges</div>
+            </div>
+          </div>
+
+          <div id="prediction-alerts-page"></div>
+
+          <div class="glass" style="padding:1.5rem;">
+            <div class="card-header">
+              <div class="card-title">Historical AI Predictions</div>
+            </div>
+            <div class="table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Severity</th>
+                    <th>Accuracy</th>
+                    <th>Outcome</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Mar 12, 2026</td>
+                    <td>Tsunami Warning</td>
+                    <td><span class="badge badge-emergency">Critical</span></td>
+                    <td>94%</td>
+                    <td><span class="badge badge-resolved">Accurate</span></td>
+                  </tr>
+                  <tr>
+                    <td>Feb 28, 2026</td>
+                    <td>Earthquake 5.2M</td>
+                    <td><span class="badge badge-emergency">High</span></td>
+                    <td>89%</td>
+                    <td><span class="badge badge-resolved">Accurate</span></td>
+                  </tr>
+                  <tr>
+                    <td>Feb 10, 2026</td>
+                    <td>Flash Flood</td>
+                    <td><span class="badge badge-pending">Medium</span></td>
+                    <td>97%</td>
+                    <td><span class="badge badge-resolved">Accurate</span></td>
+                  </tr>
+                  <tr>
+                    <td>Jan 30, 2026</td>
+                    <td>Wildfire Risk</td>
+                    <td><span class="badge badge-pending">High</span></td>
+                    <td>81%</td>
+                    <td><span class="badge badge-info">Partial</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Profile Section -->
+        <section id="sec-profile" class="section">
+          <h1 style="margin-bottom:1.5rem;">My Profile</h1>
+
+          <div style="display:flex; gap:1.25rem; flex-wrap:wrap;">
+            <!-- Profile Card -->
+            <div class="glass" style="padding:2rem; flex:1; min-width:260px;">
+              <div style="text-align:center; margin-bottom:1.5rem;">
+                <div
+                  style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--violet));display:flex;align-items:center;justify-content:center;font-size:1.75rem;color:white;margin:0 auto 1rem;font-weight:800;box-shadow:0 4px 20px var(--primary-glow);"
+                  id="profile-avatar">U</div>
+                <h2 id="profile-name">Loading…</h2>
+                <span class="badge badge-resolved" style="margin-top:4px;">Verified Citizen</span>
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:10px; font-size:0.875rem;">
+                <div
+                  style="display:flex; align-items:flex-start; gap:10px; background:var(--glass-bg); padding:11px; border-radius:9px;">
+                  <div>
+                    <div
+                      style="color:var(--text-tertiary); font-size:0.68rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:2px;">
+                      Email</div>
+                    <div id="profile-email">—</div>
+                  </div>
+                </div>
+                <div
+                  style="display:flex; align-items:flex-start; gap:10px; background:var(--glass-bg); padding:11px; border-radius:9px;">
+                  <div>
+                    <div
+                      style="color:var(--text-tertiary); font-size:0.68rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:2px;">
+                      Phone</div>
+                    <div id="profile-phone">—</div>
+                  </div>
+                </div>
+                <div
+                  style="display:flex; align-items:flex-start; gap:10px; background:var(--glass-bg); padding:11px; border-radius:9px;">
+                  <div>
+                    <div
+                      style="color:var(--text-tertiary); font-size:0.68rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:2px;">
+                      Address</div>
+                    <div id="profile-address">—</div>
+                  </div>
+                </div>
+                <div
+                  style="display:flex; align-items:flex-start; gap:10px; background:rgba(239,68,68,0.07); padding:11px; border-radius:9px; border:1px solid rgba(239,68,68,0.14);">
+                  <div>
+                    <div
+                      style="color:var(--danger); font-size:0.68rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:2px;">
+                      Emergency Contact</div>
+                    <div id="profile-emcon">—</div>
+                  </div>
+                </div>
+                <div
+                  style="display:flex; align-items:flex-start; gap:10px; background:var(--glass-bg); padding:11px; border-radius:9px;">
+                  <div>
+                    <div
+                      style="color:var(--text-tertiary); font-size:0.68rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:2px;">
+                      Joined</div>
+                    <div id="profile-joined">—</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Credit & Activity -->
+            <div style="flex:1; min-width:260px; display:flex; flex-direction:column; gap:1rem;">
+              <div class="glass" style="padding:1.5rem;">
+                <div class="card-title" style="margin-bottom:1rem;">Credit Status</div>
+                <div style="display:flex; align-items:center; gap:1rem;">
+                  <div style="font-size:2.75rem; font-weight:900; color:var(--success); letter-spacing:-0.04em;"
+                    id="profile-credits">100</div>
+                  <div>
+                    <div style="font-size:0.82rem; color:var(--text-secondary);">out of 100 credits</div>
+                    <div style="font-size:0.72rem; color:var(--text-tertiary); margin-top:3px;">No false alarms recorded
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="glass" style="padding:1.5rem;">
+                <div class="card-title" style="margin-bottom:1rem;">Your Activity</div>
+                <div style="display:flex; flex-direction:column; gap:7px; font-size:0.875rem;">
+                  <div
+                    style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--glass-border);">
+                    <span style="color:var(--text-secondary);">SOS Requests Sent</span>
+                    <strong id="activity-sos">0</strong>
+                  </div>
+                  <div
+                    style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--glass-border);">
+                    <span style="color:var(--text-secondary);">Incidents Reported</span>
+                    <strong id="activity-reports">0</strong>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; padding:8px 0;">
+                    <span style="color:var(--text-secondary);">Alerts Received</span>
+                    <strong id="activity-alerts">7</strong>
+                  </div>
+                </div>
+              </div>
+
+              <button class="btn btn-outline-danger" onclick="logout()" style="align-self:flex-start;">Sign Out</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ LIVE MAP SECTION (NEW) ══ -->
+        <section id="sec-map" class="section">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+            <div>
+              <h1 style="margin-bottom:0.2rem;">Live Disaster Map</h1>
+              <p style="font-size:0.85rem;">Real-time incident locations, AI prediction zones, and your position.</p>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span class="pulse-dot"></span>
+              <span style="font-size:0.78rem; color:var(--text-secondary);">Auto-refreshes every 30s</span>
+              <button class="btn btn-primary btn-sm" onclick="refreshLiveMap()">Refresh Now</button>
+            </div>
+          </div>
+
+          <div class="glass" style="padding:1.25rem;">
+            <div id="live-map"></div>
+            <div class="map-legend">
+              <span><span class="legend-dot" style="background:#ef4444;"></span>Live Incident</span>
+              <span><span class="legend-dot" style="background:#f59e0b;"></span>AI Prediction Zone</span>
+              <span><span class="legend-dot" style="background:#10b981;"></span>Your Location</span>
+              <span><span class="legend-dot" style="background:#6366f1;"></span>Resolved</span>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-top:1rem;">
+            <div class="glass" style="padding:1.25rem; text-align:center;">
+              <div style="font-size:1.75rem; font-weight:900; color:var(--danger);" id="map-stat-live">0</div>
+              <div style="font-size:0.78rem; color:var(--text-secondary); margin-top:4px;">Live Incidents</div>
+            </div>
+            <div class="glass" style="padding:1.25rem; text-align:center;">
+              <div style="font-size:1.75rem; font-weight:900; color:var(--warning);" id="map-stat-pred">3</div>
+              <div style="font-size:0.78rem; color:var(--text-secondary); margin-top:4px;">AI Prediction Zones</div>
+            </div>
+            <div class="glass" style="padding:1.25rem; text-align:center;">
+              <div style="font-size:1.75rem; font-weight:900; color:var(--success);" id="map-stat-res">0</div>
+              <div style="font-size:0.78rem; color:var(--text-secondary); margin-top:4px;">Resolved Today</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ COMMUNITY FEED SECTION (NEW) ══ -->
+        <section id="sec-community" class="section">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+            <div>
+              <h1 style="margin-bottom:0.2rem;">Community Incident Feed</h1>
+              <p style="font-size:0.85rem;">Incident reports from all citizens in your region. Updated in real time.</p>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="loadCommunityFeed()">Refresh</button>
+          </div>
+
+          <div class="alert-banner info" style="margin-bottom:1rem;">
+            <div class="alert-banner-icon">i</div>
+            <div class="alert-banner-content">
+              <div class="alert-banner-title">Community Monitoring Active</div>
+              <div class="alert-banner-body">Reports are submitted by verified citizens and reviewed by admins before
+                dispatch.</div>
+            </div>
+          </div>
+
+          <!-- Filter bar -->
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:1rem;">
+            <button class="type-chip selected" id="cf-filter-all" onclick="filterCommunity('all',this)">All</button>
+            <button class="type-chip" id="cf-filter-Fire" onclick="filterCommunity('Fire',this)">Fire</button>
+            <button class="type-chip" id="cf-filter-Flood" onclick="filterCommunity('Flood',this)">Flood</button>
+            <button class="type-chip" id="cf-filter-Accident"
+              onclick="filterCommunity('Accident',this)">Accident</button>
+            <button class="type-chip" id="cf-filter-Medical" onclick="filterCommunity('Medical',this)">Medical</button>
+            <button class="type-chip" id="cf-filter-Other" onclick="filterCommunity('Other',this)">Other</button>
+          </div>
+
+          <div id="community-feed-list">
+            <div style="text-align:center; padding:3rem; color:var(--text-tertiary);">Loading community reports...</div>
+          </div>
+        </section>
+
+        <!-- Footer -->
+        <footer style="text-align: center; padding: 2rem 1rem; margin-top: 2rem; border-top: 1px solid var(--glass-border); color: var(--text-secondary); font-size: 0.85rem;">
+          <p style="margin-bottom: 0.5rem;">&copy; 2026 AI Disaster Response System. All rights reserved.</p>
+          <p style="margin: 0;">Developed by <a href="https://github.com/ArShx17" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">Abhay Maddheshiya</a> | <a href="https://github.com/ArShx17/Disaster-Response-System" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">GitHub Repository</a></p>
+        </footer>
+
+      </div>
+
+    </div>
+  </div>
+
+  <script src="js/script.js"></script>
+  
+
+  <script src="js/dashboard-inline.js"></script>
+</body>
+
+</html>

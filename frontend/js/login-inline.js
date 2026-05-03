@@ -1,7 +1,7 @@
 (function(){
       try {
         const u = JSON.parse(localStorage.getItem('currentUser'));
-        if (u && u.credits !== undefined) window.location.href = 'index.html';
+        if (u && u.credits !== undefined) window.location.href = 'dashboard.html';
       } catch(e){}
     })();
 

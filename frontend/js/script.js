@@ -212,7 +212,7 @@ function handleLogin(e) {
   if (user) {
     localStorage.setItem('currentUser', JSON.stringify(user));
     showToast(`Welcome back, ${user.name}! 🎉`, 'success');
-    setTimeout(() => { window.location.href = 'index.html'; }, 1200);
+    setTimeout(() => { window.location.href = 'dashboard.html'; }, 1200);
   } else {
     showToast('Invalid email or password.', 'danger');
     const card = document.querySelector('.auth-form-side');
@@ -227,7 +227,7 @@ function requireAuth() {
 
 function logout() {
   localStorage.removeItem('currentUser');
-  window.location.href = 'login.html';
+  window.location.href = 'index.html';
 }
 
 // Toggle password visibility
