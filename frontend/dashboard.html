@@ -637,9 +637,54 @@
         </section>
 
         <!-- Footer -->
-        <footer style="text-align: center; padding: 2rem 1rem; margin-top: 2rem; border-top: 1px solid var(--glass-border); color: var(--text-secondary); font-size: 0.85rem;">
-          <p style="margin-bottom: 0.5rem;">&copy; 2026 AI Disaster Response System. All rights reserved.</p>
-          <p style="margin: 0;">Developed by <a href="https://github.com/ArShx17" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">Abhay Maddheshiya</a> | <a href="https://github.com/ArShx17/Disaster-Response-System" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600;">GitHub Repository</a></p>
+        <footer style="padding:2.5rem 1rem 1.5rem; margin-top:2rem; border-top:1px solid var(--glass-border);">
+
+          <!-- Contributors -->
+          <div style="text-align:center; margin-bottom:1.5rem;">
+            <p style="font-size:0.72rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--primary); margin-bottom:0.75rem;">✨ Project Contributors</p>
+            <div id="db-contributors" style="display:flex;flex-wrap:wrap;justify-content:center;gap:14px;min-height:52px;">
+              <span style="font-size:0.78rem;color:var(--text-tertiary);align-self:center;">Loading…</span>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:0.8rem;color:var(--text-secondary);">
+            <span>&copy; 2026 AI Disaster Response System</span>
+            <a href="https://github.com/Abhay-Maddy/Disaster-Response-System" target="_blank"
+               style="color:var(--primary);text-decoration:none;font-weight:600;">View on GitHub →</a>
+          </div>
+
+          <script>
+          (function(){
+            const el = document.getElementById('db-contributors');
+            if (!el) return;
+            fetch('https://api.github.com/repos/Abhay-Maddy/Disaster-Response-System/contributors?per_page=20')
+              .then(r => r.json())
+              .then(data => {
+                if (!Array.isArray(data) || !data.length) throw new Error();
+                el.innerHTML = data.map(c => `
+                  <a href="${c.html_url}" target="_blank" rel="noopener"
+                     title="@${c.login} — ${c.contributions} commit${c.contributions!==1?'s':''}"
+                     style="display:flex;flex-direction:column;align-items:center;gap:5px;text-decoration:none;transition:transform 0.2s;"
+                     onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform=''">
+                    <img src="${c.avatar_url}&s=80" alt="@${c.login}" width="48" height="48"
+                         style="border-radius:50%;border:2px solid var(--glass-border);object-fit:cover;"
+                         onerror="this.src='https://avatars.githubusercontent.com/u/0?v=4'">
+                    <span style="font-size:0.68rem;font-weight:600;color:var(--text-secondary);max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@${c.login}</span>
+                    <span style="font-size:0.6rem;color:var(--text-tertiary);">${c.contributions} commit${c.contributions!==1?'s':''}</span>
+                  </a>`).join('');
+              })
+              .catch(() => {
+                el.innerHTML = `
+                  <a href="https://github.com/Abhay-Maddy" target="_blank" rel="noopener"
+                     style="display:flex;flex-direction:column;align-items:center;gap:5px;text-decoration:none;">
+                    <img src="https://avatars.githubusercontent.com/Abhay-Maddy" alt="@Abhay-Maddy"
+                         width="48" height="48"
+                         style="border-radius:50%;border:2px solid var(--glass-border);object-fit:cover;">
+                    <span style="font-size:0.68rem;font-weight:600;color:var(--text-secondary);">@Abhay-Maddy</span>
+                  </a>`;
+              });
+          })();
+          </script>
         </footer>
 
       </div>
