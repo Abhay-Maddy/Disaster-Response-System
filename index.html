@@ -355,12 +355,21 @@
 
     </div>
 
+    <!-- Contributors Section -->
+    <div style="padding-top:2rem; border-top:1px solid rgba(255,255,255,0.06); margin-bottom:2rem;">
+      <div style="text-align:center; margin-bottom:1.25rem;">
+        <span style="font-size:0.72rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--blue);">✨ Contributors</span>
+        <p style="font-size:0.8rem; color:var(--text3); margin-top:4px;">People who built this project</p>
+      </div>
+      <div id="contributors-list" style="display:flex; flex-wrap:wrap; justify-content:center; gap:16px; min-height:56px;">
+        <span style="font-size:0.8rem; color:var(--text3); align-self:center;">Loading contributors…</span>
+      </div>
+    </div>
+
     <div class="footer-bottom">
       <span>&copy; 2026 AI Disaster Response System. All rights reserved.</span>
       <span>
-        Built by <a href="https://github.com/Abhay-Maddy" target="_blank" rel="noopener">Abhay Maddheshiya</a>
-        &nbsp;|&nbsp;
-        <a href="https://github.com/Abhay-Maddy/Disaster-Response-System" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/Abhay-Maddy/Disaster-Response-System" target="_blank" rel="noopener">View on GitHub →</a>
       </span>
     </div>
   </div>
@@ -437,6 +446,43 @@ try {
     }
   }
 } catch(e) {}
+
+/* ── Load GitHub Contributors ── */
+(function loadContributors() {
+  const container = document.getElementById('contributors-list');
+  if (!container) return;
+
+  fetch('https://api.github.com/repos/Abhay-Maddy/Disaster-Response-System/contributors?per_page=20')
+    .then(r => r.json())
+    .then(data => {
+      if (!Array.isArray(data) || data.length === 0) throw new Error('no data');
+      container.innerHTML = data.map(c => `
+        <a href="${c.html_url}" target="_blank" rel="noopener"
+           title="@${c.login} — ${c.contributions} commit${c.contributions !== 1 ? 's' : ''}"
+           style="display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;transition:transform 0.2s;"
+           onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform=''">
+          <img src="${c.avatar_url}&s=80" alt="@${c.login}"
+               width="52" height="52"
+               style="border-radius:50%;border:2px solid rgba(255,255,255,0.12);object-fit:cover;"
+               onerror="this.src='https://avatars.githubusercontent.com/u/0?v=4'">
+          <span style="font-size:0.72rem;font-weight:600;color:var(--text2);max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@${c.login}</span>
+          <span style="font-size:0.65rem;color:var(--text3);">${c.contributions} commit${c.contributions !== 1 ? 's' : ''}</span>
+        </a>
+      `).join('');
+    })
+    .catch(() => {
+      // Fallback: show hardcoded contributor if API rate-limited
+      container.innerHTML = `
+        <a href="https://github.com/Abhay-Maddy" target="_blank" rel="noopener"
+           style="display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;">
+          <img src="https://avatars.githubusercontent.com/Abhay-Maddy" alt="@Abhay-Maddy"
+               width="52" height="52"
+               style="border-radius:50%;border:2px solid rgba(255,255,255,0.12);object-fit:cover;">
+          <span style="font-size:0.72rem;font-weight:600;color:var(--text2);">@Abhay-Maddy</span>
+        </a>
+      `;
+    });
+})();
 </script>
 
 </body>
