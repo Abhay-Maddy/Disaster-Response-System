@@ -2,6 +2,10 @@
 
 ### 🚨 AI-Powered Real-Time Disaster Intelligence & Coordination Platform
 
+[![Live Demo](https://img.shields.io/badge/🌐%20Live%20Demo-GitHub%20Pages-blue?style=for-the-badge)](https://abhay-maddy.github.io/Disaster-Response-System/)
+
+> **🔗 Open the live website:** [https://abhay-maddy.github.io/Disaster-Response-System/](https://abhay-maddy.github.io/Disaster-Response-System/)
+
 ---
 
 ## 📖 Overview
@@ -168,20 +172,26 @@ Response / Insights / Alerts
 ```
 📁 Disaster-Response-System
 │
-├── 📁 frontend
-│   ├── safezones.html
-│   ├── team.html
+├── 📁 .github
+│   └── 📁 workflows
+│       └── deploy.yml          ← GitHub Actions: auto-build & deploy
 │
-├── 📁 backend
-│   ├── app.js
-│   ├── users.js
+├── 📁 frontend                 ← Vite multi-page app (deployed to GitHub Pages)
+│   ├── index.html              ← Main citizen dashboard
+│   ├── login.html              ← Login page
+│   ├── register.html           ← Citizen registration
+│   ├── admin.html              ← Responder / admin panel
+│   ├── admin-register.html     ← Responder registration
+│   ├── 📁 css/                 ← Stylesheets
+│   ├── 📁 js/                  ← JavaScript modules
+│   ├── 📁 public/              ← Static assets (favicon, icons)
+│   ├── vite.config.js          ← Vite config (base = /Disaster-Response-System/)
+│   └── package.json
 │
-├── 📁 AI
-│   ├── qabot.py
-│
-├── 📄 package.json
-├── 📄 requirements.txt
-├── 📄 README.md
+├── 📁 backend                  ← Node.js / Express API (not deployed to Pages)
+├── 📁 ml_model                 ← Python AI / ML scripts
+├── 📁 web_demo                 ← Additional demo files
+└── 📄 README.md
 ```
 
 ---
@@ -277,7 +287,29 @@ http://localhost:8000
 
 ---
 
-## 🤝 Contributing
+## 🚀 GitHub Pages Deployment
+
+The frontend is automatically deployed to GitHub Pages on every push to `main`.
+
+**Live URL:** [https://abhay-maddy.github.io/Disaster-Response-System/](https://abhay-maddy.github.io/Disaster-Response-System/)
+
+### How it works
+
+1. GitHub Actions (`.github/workflows/deploy.yml`) runs `npm ci && npm run build` inside the `frontend/` directory.
+2. The built `frontend/dist/` folder is pushed to the `gh-pages` branch.
+3. GitHub Pages serves from `gh-pages`.
+
+### Enable Pages (first-time setup)
+
+1. Go to your repository → **Settings → Pages**.
+2. Set **Source** to `Deploy from a branch`.
+3. Select the **`gh-pages`** branch → `/ (root)` → Save.
+
+After the next push to `main` the site will be live at the URL above.
+
+---
+
+
 
 ```bash
 1. Fork the repository
