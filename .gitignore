@@ -1,34 +1,53 @@
-# Environment files
+# ── Environment & secrets ────────────────────────────────────────
 .env
+.env.*
 *.local
 
-# Editor directories
+# ── Editor / OS junk ─────────────────────────────────────────────
 .vscode/
-.idea
+.idea/
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 
-# Node modules
+# ── Node.js ──────────────────────────────────────────────────────
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Python virtual environments (ml_model)
+# ── Python ───────────────────────────────────────────────────────
 ml_model/venv/
 ml_model/__pycache__/
 ml_model/**/__pycache__/
+__pycache__/
 *.pyc
 *.pyo
+*.pyd
 
-# Build artifacts inside source tree
+# ── Vite / Build outputs ──────────────────────────────────────────
+# (We no longer use Vite — keep these entries in case it's ever re-added)
 frontend/dist/
 frontend/lint_output.txt
+dist/
 
-# Docs folder (no longer used — build outputs to repo root)
+# ── Old Vite build artifacts at repo root (no longer generated) ───
+# These were created by the old deploy.yml; safe to ignore if they reappear
+/assets/
+/css/
+/js/
+/index.html
+/login.html
+/register.html
+/dashboard.html
+/admin.html
+/admin-register.html
+/favicon.svg
+/icons.svg
+
+# ── Old docs folder ───────────────────────────────────────────────
 docs/
-
-# DO NOT ignore the following — they are the built site served by GitHub Pages:
-# index.html, login.html, register.html, dashboard.html, admin.html, admin-register.html
-# assets/  css/  js/  favicon.svg  icons.svg

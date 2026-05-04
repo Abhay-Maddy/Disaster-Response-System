@@ -1,51 +1,42 @@
-name: Sync Frontend → GitHub Pages
+name: Deploy Frontend to GitHub Pages
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
+# Required for GitHub Pages deployment via Actions
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one deployment at a time
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
   deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ── Copy every source file from frontend/ to repo root ──────────────────
-      # GitHub Pages serves from root. All HTML files reference css/ and js/
-      # which live inside frontend/. This step makes them available at root.
-      - name: Sync frontend source to root
-        run: |
-          cp -f frontend/index.html        index.html
-          cp -f frontend/login.html        login.html
-          cp -f frontend/register.html     register.html
-          cp -f frontend/dashboard.html    dashboard.html
-          cp -f frontend/admin.html        admin.html
-          cp -f frontend/admin-register.html admin-register.html
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v5
 
-          # Overwrite css/ and js/ folders at root with latest source
-          rm -rf css js
-          cp -r frontend/css css
-          cp -r frontend/js  js
+      # Upload the entire frontend/ folder as the Pages artifact.
+      # No build step needed — the site is plain HTML/CSS/JS.
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./frontend
 
-          echo "Sync complete. Root now contains:"
-          ls -la *.html css/ js/
-
-      # ── Commit updated files back to main so GitHub Pages picks them up ─────
-      - name: Commit and push
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git add index.html login.html register.html dashboard.html \
-                  admin.html admin-register.html css/ js/ \
-                  favicon.svg icons.svg
-
-          git diff --cached --quiet \
-            || git commit -m "chore: sync frontend → root [skip ci]"
-          git push
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
