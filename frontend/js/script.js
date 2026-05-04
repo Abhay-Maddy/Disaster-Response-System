@@ -6,9 +6,14 @@
 // ════════════════════════════════════════════════════════════
 // EMAILJS CONFIG  — fill in your credentials from emailjs.com
 // ════════════════════════════════════════════════════════════
-const EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';   // e.g. 'user_abc123XYZ'
-const EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';   // e.g. 'service_gmail'
-const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';  // e.g. 'template_otp'
+const EMAILJS_PUBLIC_KEY  = 'ttBRwcS03DGGfpLXQ';
+const EMAILJS_SERVICE_ID  = 'service_0xai6dy';
+const EMAILJS_TEMPLATE_ID = 'template_jiheis5';
+
+// Initialize EmailJS (required for v4+)
+if (typeof emailjs !== 'undefined') {
+  emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+}
 
 // ════════════════════════════════════════════════════════════
 // SAFE LOCALSTORAGE WRAPPER (handles Safari private mode)
