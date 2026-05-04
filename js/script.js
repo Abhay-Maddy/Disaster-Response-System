@@ -7,8 +7,8 @@
 // EMAILJS CONFIG  — fill in your credentials from emailjs.com
 // ════════════════════════════════════════════════════════════
 const EMAILJS_PUBLIC_KEY  = 'ttBRwcS03DGGfpLXQ';   // e.g. 'user_abc123XYZ'
-const EMAILJS_SERVICE_ID  = 'service_d2r3m5v';   // e.g. 'service_gmail'
-const EMAILJS_TEMPLATE_ID = 'template_otp';  // e.g. 'template_otp'
+const EMAILJS_SERVICE_ID  = 'service_0xai6dy';   // e.g. 'service_gmail'
+const EMAILJS_TEMPLATE_ID = 'template_jiheis5';  // e.g. 'template_otp'
 
 // ════════════════════════════════════════════════════════════
 // SAFE LOCALSTORAGE WRAPPER (handles Safari private mode)
