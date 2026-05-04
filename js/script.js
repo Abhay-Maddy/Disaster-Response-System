@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    AI DISASTER RESPONSE SYSTEM — CORE SCRIPT v2.1
    Auth, SOS, Credits, Admin, Toasts, Theming, Predictions
    ============================================================ */
@@ -6,7 +6,6 @@
 // ════════════════════════════════════════════════════════════
 // EMAILJS CONFIG  — fill in your credentials from emailjs.com
 // ════════════════════════════════════════════════════════════
-<<<<<<< HEAD
 const EMAILJS_PUBLIC_KEY  = 'ttBRwcS03DGGfpLXQ';
 const EMAILJS_SERVICE_ID  = 'service_0xai6dy';
 const EMAILJS_TEMPLATE_ID = 'template_jiheis5';
@@ -15,11 +14,6 @@ const EMAILJS_TEMPLATE_ID = 'template_jiheis5';
 if (typeof emailjs !== 'undefined') {
   emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 }
-=======
-const EMAILJS_PUBLIC_KEY  = 'ttBRwcS03DGGfpLXQ';   // e.g. 'user_abc123XYZ'
-const EMAILJS_SERVICE_ID  = 'service_0xai6dy';   // e.g. 'service_gmail'
-const EMAILJS_TEMPLATE_ID = 'template_jiheis5';  // e.g. 'template_otp'
->>>>>>> 3f9a64dd5578a339b865545cee908e5c4847a9dc
 
 // ════════════════════════════════════════════════════════════
 // SAFE LOCALSTORAGE WRAPPER (handles Safari private mode)
