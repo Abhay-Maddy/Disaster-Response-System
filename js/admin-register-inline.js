@@ -1,0 +1,1 @@
+window.requireAuth = function(){};

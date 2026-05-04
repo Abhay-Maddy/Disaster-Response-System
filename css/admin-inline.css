@@ -1,0 +1,21 @@
+.sidebar .sidebar-logo-title {
+      color: var(--danger-light);
+    }
+
+    .sidebar .sidebar-logo-icon {
+      background: linear-gradient(135deg, var(--danger), #f43f5e);
+    }
+
+    .nav-item.active {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--danger-light);
+      border-color: rgba(239, 68, 68, 0.2);
+    }
+
+    .nav-item.active::before {
+      background: var(--danger);
+    }
+
+    .nav-item.active .nav-icon {
+      color: var(--danger-light);
+    }

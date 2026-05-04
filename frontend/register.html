@@ -6,6 +6,8 @@
   <title>Register — AI Disaster Response</title>
   <meta name="description" content="Create your account for the AI Disaster Response Coordination System.">
   <link rel="stylesheet" href="css/styles.css">
+  <!-- EmailJS SDK for real email OTP -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="js/theme-init.js"></script>
 </head>
 <body>
@@ -91,10 +93,11 @@
             <!-- OTP Method -->
             <div class="form-group">
               <label class="form-label">Verify Via</label>
-              <div style="display:flex; gap:8px; margin-bottom:10px;">
-                <button type="button" class="type-chip otp-method-chip selected" data-method="phone" onclick="selectOTPMethod('phone')">Phone</button>
-                <button type="button" class="type-chip otp-method-chip" data-method="email" onclick="selectOTPMethod('email')">Email</button>
+              <div style="display:flex; gap:8px; margin-bottom:4px;">
+                <button type="button" class="type-chip otp-method-chip" data-method="phone" onclick="selectOTPMethod('phone')">Phone</button>
+                <button type="button" class="type-chip otp-method-chip selected" data-method="email" onclick="selectOTPMethod('email')">Email ✓</button>
               </div>
+              <p class="form-hint" style="margin-bottom:8px;">Email OTP recommended — instant delivery, no SMS charges.</p>
               <button type="button" class="btn btn-outline-primary btn-block" onclick="sendOTP()">
                 Send Verification Code
               </button>

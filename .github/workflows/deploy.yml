@@ -1,43 +1,51 @@
-name: Build Frontend
+name: Sync Frontend → GitHub Pages
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Build (outputs to repo root)
-        working-directory: frontend
-        run: npm run build
-
-      # Commit the freshly-built files back to main so GitHub Pages
-      # (source: main branch / root) always serves the latest build.
-      - name: Commit built files
+      # ── Copy every source file from frontend/ to repo root ──────────────────
+      # GitHub Pages serves from root. All HTML files reference css/ and js/
+      # which live inside frontend/. This step makes them available at root.
+      - name: Sync frontend source to root
         run: |
-          git config user.name "github-actions[bot]"
+          cp -f frontend/index.html        index.html
+          cp -f frontend/login.html        login.html
+          cp -f frontend/register.html     register.html
+          cp -f frontend/dashboard.html    dashboard.html
+          cp -f frontend/admin.html        admin.html
+          cp -f frontend/admin-register.html admin-register.html
+
+          # Overwrite css/ and js/ folders at root with latest source
+          rm -rf css js
+          cp -r frontend/css css
+          cp -r frontend/js  js
+
+          echo "Sync complete. Root now contains:"
+          ls -la *.html css/ js/
+
+      # ── Commit updated files back to main so GitHub Pages picks them up ─────
+      - name: Commit and push
+        run: |
+          git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html login.html register.html admin.html admin-register.html assets/ favicon.svg icons.svg
-          git diff --cached --quiet || git commit -m "chore: auto-build frontend [skip ci]"
+
+          git add index.html login.html register.html dashboard.html \
+                  admin.html admin-register.html css/ js/ \
+                  favicon.svg icons.svg
+
+          git diff --cached --quiet \
+            || git commit -m "chore: sync frontend → root [skip ci]"
           git push

@@ -3,8 +3,7 @@
 *.local
 
 # Editor directories
-.vscode/*
-!.vscode/extensions.json
+.vscode/
 .idea
 .DS_Store
 *.suo
@@ -13,12 +12,23 @@
 *.sln
 *.sw?
 
-# Root-level node_modules (the real one is inside frontend/)
-node_modules
+# Node modules
+node_modules/
 
-# The /docs folder is no longer used (build now outputs to repo root)
+# Python virtual environments (ml_model)
+ml_model/venv/
+ml_model/__pycache__/
+ml_model/**/__pycache__/
+*.pyc
+*.pyo
+
+# Build artifacts inside source tree
+frontend/dist/
+frontend/lint_output.txt
+
+# Docs folder (no longer used — build outputs to repo root)
 docs/
 
 # DO NOT ignore the following — they are the built site served by GitHub Pages:
-# index.html, login.html, register.html, admin.html, admin-register.html
-# assets/  favicon.svg  icons.svg
+# index.html, login.html, register.html, dashboard.html, admin.html, admin-register.html
+# assets/  css/  js/  favicon.svg  icons.svg
