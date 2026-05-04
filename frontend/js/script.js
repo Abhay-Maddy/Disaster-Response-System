@@ -4,13 +4,37 @@
    ============================================================ */
 
 // ════════════════════════════════════════════════════════════
-// EMAILJS CONFIG  — fill in your credentials from emailjs.com
+// BACKEND API CONFIG
+// Set BACKEND_URL to your Render deployment URL.
+// Leave empty ('') to run in localStorage-only demo mode.
+// ════════════════════════════════════════════════════════════
+const BACKEND_URL = 'https://disaster-response-api.onrender.com'; // ← your Render URL
+
+// ── API helper ───────────────────────────────────────────────────
+async function apiPost(endpoint, data) {
+  const res  = await fetch(`${BACKEND_URL}${endpoint}`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(data)
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    const err = new Error(json.message || 'API error');
+    err.code = json.code;
+    throw err;
+  }
+  return json;
+}
+
+// ── Demo-mode OTP storage (only used when no backend) ────────────
+let _demoOTP = null;
+
+// ════════════════════════════════════════════════════════════
+// EMAILJS CONFIG (fallback — used only if BACKEND_URL is empty)
 // ════════════════════════════════════════════════════════════
 const EMAILJS_PUBLIC_KEY  = 'ttBRwcS03DGGfpLXQ';
 const EMAILJS_SERVICE_ID  = 'service_0xai6dy';
 const EMAILJS_TEMPLATE_ID = 'template_jiheis5';
-
-// Initialize EmailJS (required for v4+)
 if (typeof emailjs !== 'undefined') {
   emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 }
@@ -182,7 +206,7 @@ async function resendOTP() {
   await sendOTP();
 }
 
-// ── OTP Send (Registration) ───────────────────────────────────
+// ── OTP Send (Registration) ──────────────────────────────────────
 async function sendOTP() {
   const email  = document.getElementById('reg-email')?.value?.trim();
   const method = document.querySelector('.otp-method-chip.selected')?.dataset.method || 'email';
@@ -193,36 +217,43 @@ async function sendOTP() {
     document.querySelector('[data-method="email"]')?.click();
     return;
   }
-
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     showFieldError('reg-email', 'Please enter a valid email address.');
     return;
   }
   clearFieldError('reg-email');
 
-  generatedOTP = Math.floor(1000 + Math.random() * 9000).toString();
   const btn = document.querySelector('[onclick="sendOTP()"]');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Sending…'; }
 
-  const isConfigured = EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY';
-  if (isConfigured && typeof emailjs !== 'undefined') {
-    try {
+  try {
+    if (BACKEND_URL) {
+      // ── Real backend email via Nodemailer/Gmail ───────────────
+      await apiPost('/api/auth/send-otp', { email, name, purpose: 'register' });
+      generatedOTP = '__BACKEND__'; // backend stores OTP; we just flag it
+      showOTPSentPopup(email);
+      goToStep(2);
+    } else if (typeof emailjs !== 'undefined') {
+      // ── EmailJS fallback ────────────────────────────────
+      generatedOTP = Math.floor(1000 + Math.random() * 9000).toString();
       await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
         { to_email: email, otp_code: generatedOTP, to_name: name },
         { publicKey: EMAILJS_PUBLIC_KEY });
       showOTPSentPopup(email);
       goToStep(2);
-    } catch (err) {
-      console.error('EmailJS error:', err);
-      showToast('Failed to send OTP. Please check your email address.', 'danger');
+    } else {
+      // ── Demo mode ─────────────────────────────────────────
+      generatedOTP = Math.floor(1000 + Math.random() * 9000).toString();
+      _demoOTP = generatedOTP;
+      showOTPSentPopup(email);
+      showToast(`🔐 Demo OTP: ${generatedOTP}`, 'info', 20000);
+      goToStep(2);
     }
-  } else {
-    console.info(`[DEMO] OTP: ${generatedOTP}`);
-    showOTPSentPopup(email);
-    // Also show in toast for demo
-    showToast(`🔐 Demo OTP: ${generatedOTP}`, 'info', 15000);
-    goToStep(2);
+  } catch (err) {
+    console.error('sendOTP error:', err);
+    showToast(err.message || 'Failed to send OTP. Try again.', 'danger', 5000);
   }
+
   if (btn) { btn.disabled = false; btn.textContent = 'Send Verification Code'; }
 }
 
@@ -280,52 +311,62 @@ function checkPasswordStrength(value) {
   if (label) { label.textContent = score > 0 ? levels[score] : ''; label.style.color = colors[score]; }
 }
 
-function handleRegister(e) {
+async function handleRegister(e) {
   e.preventDefault();
-  const otp = getOTPValue();
-  if (otp !== generatedOTP) {
-    showToast('Invalid OTP code. Please try again.', 'danger');
-    [1,2,3,4].forEach(i => {
-      const inp = document.getElementById(`otp-${i}`);
-      if (inp) { inp.value = ''; inp.classList.remove('filled'); }
-    });
-    document.getElementById('otp-1')?.focus();
-    return;
-  }
-
+  const otp      = getOTPValue();
   const name     = document.getElementById('reg-name').value.trim();
-  const email    = document.getElementById('reg-email').value.trim();
+  const email    = document.getElementById('reg-email').value.trim().toLowerCase();
   const phone    = document.getElementById('reg-phone').value.trim();
   const address  = document.getElementById('reg-address').value.trim();
   const emCon    = document.getElementById('reg-emcontact').value.trim();
   const password = document.getElementById('reg-password').value;
 
-  const users = safeStorage.get('users', []);
-  if (users.find(u => u.email === email)) {
-    showToast('This email is already registered.', 'danger');
-    goToStep(1); return;
-  }
+  if (otp.length < 4) { showToast('Please enter the 4-digit OTP.', 'warning'); return; }
 
-  const newUser = {
-    id: Date.now(), name, email, phone,
-    address, emergencyContact: emCon,
-    password, credits: 100,
-    joinedAt: new Date().toLocaleDateString()
-  };
-  users.push(newUser);
-  if (!safeStorage.set('users', users)) {
-    showToast('Storage error. Try a different browser.', 'danger'); return;
-  }
+  const btn = document.querySelector('[onclick="handleRegister(event)"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Creating account…'; }
 
-  showToast('🎉 Account created! Redirecting to login…', 'success', 2500);
-  setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+  try {
+    if (BACKEND_URL) {
+      // Backend verifies OTP and stores user in MongoDB
+      const res = await apiPost('/api/auth/register', {
+        name, email, phone, address, emergencyContact: emCon, password, otp
+      });
+      safeStorage.set('currentUser', res.user);
+      showToast('🎉 Account created! Redirecting…', 'success', 2500);
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 2000);
+    } else {
+      // localStorage fallback
+      if (generatedOTP === '__BACKEND__' || otp !== generatedOTP) {
+        showToast('Invalid OTP. Please try again.', 'danger');
+        [1,2,3,4].forEach(i => { const inp = document.getElementById(`otp-${i}`); if (inp) { inp.value = ''; inp.classList.remove('filled'); } });
+        document.getElementById('otp-1')?.focus();
+        if (btn) { btn.disabled = false; btn.textContent = 'Create My Account'; }
+        return;
+      }
+      const users = safeStorage.get('users', []);
+      if (users.find(u => u.email === email)) {
+        showToast('❌ This email is already registered.', 'danger'); goToStep(1);
+        if (btn) { btn.disabled = false; btn.textContent = 'Create My Account'; }
+        return;
+      }
+      const newUser = { id: Date.now(), name, email, phone, address, emergencyContact: emCon, password, credits: 100, joinedAt: new Date().toLocaleDateString() };
+      users.push(newUser);
+      safeStorage.set('users', users);
+      showToast('🎉 Account created! Redirecting to login…', 'success', 2500);
+      setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+    }
+  } catch (err) {
+    showToast(err.message || 'Registration failed. Please try again.', 'danger');
+    if (btn) { btn.disabled = false; btn.textContent = 'Create My Account'; }
+  }
 }
 
 // ════════════════════════════════════════════════════════════
 // AUTH — LOGIN
 // ════════════════════════════════════════════════════════════
 
-function handleLogin(e) {
+async function handleLogin(e) {
   e.preventDefault();
   clearFieldError('login-email');
   clearFieldError('login-password');
@@ -336,23 +377,27 @@ function handleLogin(e) {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Signing in…'; }
   const resetBtn = () => { if (btn) { btn.disabled = false; btn.textContent = 'Sign In to Dashboard'; } };
 
-  const users     = safeStorage.get('users', []);
-  const emailUser = users.find(u => u.email?.toLowerCase() === email);
-
-  if (!emailUser) {
+  try {
+    if (BACKEND_URL) {
+      const res = await apiPost('/api/auth/login', { email, password });
+      safeStorage.set('currentUser', res.user);
+      showToast(`Welcome back, ${res.user.name}! 🎉`, 'success');
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 900);
+    } else {
+      const users     = safeStorage.get('users', []);
+      const emailUser = users.find(u => u.email?.toLowerCase() === email);
+      if (!emailUser) { resetBtn(); showFieldError('login-email', '❌ This email is not registered. Please sign up first.'); return; }
+      if (emailUser.password !== password) { resetBtn(); showFieldError('login-password', '🔑 Incorrect password. Please try again.'); return; }
+      safeStorage.set('currentUser', emailUser);
+      showToast(`Welcome back, ${emailUser.name}! 🎉`, 'success');
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 900);
+    }
+  } catch (err) {
     resetBtn();
-    showFieldError('login-email', '❌ This email is not registered. Please sign up first.');
-    return;
+    if (err.code === 'EMAIL_NOT_FOUND') showFieldError('login-email', '❌ This email is not registered. Please sign up first.');
+    else if (err.code === 'WRONG_PASSWORD') showFieldError('login-password', '🔑 Incorrect password. Please try again.');
+    else showToast(err.message || 'Login failed. Try again.', 'danger');
   }
-  if (emailUser.password !== password) {
-    resetBtn();
-    showFieldError('login-password', '🔑 Incorrect password. Please try again.');
-    return;
-  }
-
-  safeStorage.set('currentUser', emailUser);
-  showToast(`Welcome back, ${emailUser.name}! 🎉`, 'success');
-  setTimeout(() => { window.location.href = 'dashboard.html'; }, 900);
 }
 
 // ── Forgot Password (User) ────────────────────────────────────
@@ -415,45 +460,67 @@ function _rotpKey(el, i, ev) {
 async function sendResetOTP() {
   const email = document.getElementById('frgt-email')?.value?.trim().toLowerCase();
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Enter a valid email.', 'warning'); return; }
-  const users = safeStorage.get('users', []);
-  const user  = users.find(u => u.email?.toLowerCase() === email);
-  if (!user) { showToast('❌ Email not registered.', 'danger'); return; }
-  _resetOTP = Math.floor(1000 + Math.random() * 9000).toString();
-  _resetTarget = email;
-  const isConfigured = EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY';
-  if (isConfigured && typeof emailjs !== 'undefined') {
-    try {
-      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
-        { to_email: email, otp_code: _resetOTP, to_name: user.name || 'User' },
-        { publicKey: EMAILJS_PUBLIC_KEY });
-    } catch(err) { showToast('Failed to send OTP. Try again.', 'danger'); return; }
-  } else {
-    showToast(`🔐 Demo Reset OTP: ${_resetOTP}`, 'info', 15000);
+
+  const btn = document.querySelector('#frgt-s1 button');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Sending…'; }
+
+  try {
+    if (BACKEND_URL) {
+      await apiPost('/api/auth/send-otp', { email, name: 'User', purpose: 'reset' });
+      _resetOTP = '__BACKEND__';
+    } else {
+      const users = safeStorage.get('users', []);
+      const user  = users.find(u => u.email?.toLowerCase() === email);
+      if (!user) { showToast('❌ Email not registered.', 'danger'); if (btn) { btn.disabled = false; btn.textContent = 'Send OTP'; } return; }
+      _resetOTP = Math.floor(1000 + Math.random() * 9000).toString();
+      _resetTarget = email;
+      if (typeof emailjs !== 'undefined') {
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
+          { to_email: email, otp_code: _resetOTP, to_name: user.name || 'User' },
+          { publicKey: EMAILJS_PUBLIC_KEY });
+      } else {
+        showToast(`🔐 Demo Reset OTP: ${_resetOTP}`, 'info', 15000);
+      }
+    }
+    _resetTarget = email;
+    document.getElementById('frgt-s1').style.display = 'none';
+    document.getElementById('frgt-s2').style.display = 'block';
+    document.getElementById('frgt-hint').textContent = `Code sent to ${email}`;
+    showToast(`✉️ OTP sent to ${email}`, 'success');
+    document.getElementById('rotp-1')?.focus();
+  } catch (err) {
+    showToast(err.message || 'Failed to send OTP. Try again.', 'danger');
   }
-  document.getElementById('frgt-s1').style.display = 'none';
-  document.getElementById('frgt-s2').style.display = 'block';
-  document.getElementById('frgt-hint').textContent = `Code sent to ${email}`;
-  showToast(`✉️ OTP sent to ${email}`, 'success');
-  document.getElementById('rotp-1')?.focus();
+  if (btn) { btn.disabled = false; btn.textContent = 'Send OTP'; }
 }
-function resetUserPassword() {
+async function resetUserPassword() {
   const entered = [1,2,3,4].map(i => document.getElementById(`rotp-${i}`)?.value||'').join('');
   const newPass = document.getElementById('frgt-newpass')?.value;
-  if (entered !== _resetOTP) {
-    showToast('Invalid OTP. Try again.', 'danger');
-    [1,2,3,4].forEach(i => { const e = document.getElementById(`rotp-${i}`); if(e) e.value=''; });
-    document.getElementById('rotp-1')?.focus();
-    return;
-  }
+  if (entered.length < 4) { showToast('Enter the 4-digit OTP.', 'warning'); return; }
   if (!newPass || newPass.length < 6) { showToast('Password must be at least 6 characters.', 'warning'); return; }
-  const users = safeStorage.get('users', []);
-  const idx   = users.findIndex(u => u.email?.toLowerCase() === _resetTarget);
-  if (idx === -1) { showToast('User not found.', 'danger'); return; }
-  users[idx].password = newPass;
-  safeStorage.set('users', users);
-  showToast('✅ Password reset! Please login with your new password.', 'success', 4000);
-  closeForgotModal();
-  _resetOTP = null; _resetTarget = null;
+
+  try {
+    if (BACKEND_URL) {
+      await apiPost('/api/auth/reset-password', { email: _resetTarget, otp: entered, newPassword: newPass });
+    } else {
+      if (entered !== _resetOTP) {
+        showToast('Invalid OTP. Try again.', 'danger');
+        [1,2,3,4].forEach(i => { const e = document.getElementById(`rotp-${i}`); if(e) e.value=''; });
+        document.getElementById('rotp-1')?.focus();
+        return;
+      }
+      const users = safeStorage.get('users', []);
+      const idx   = users.findIndex(u => u.email?.toLowerCase() === _resetTarget);
+      if (idx === -1) { showToast('User not found.', 'danger'); return; }
+      users[idx].password = newPass;
+      safeStorage.set('users', users);
+    }
+    showToast('✅ Password reset! Please login with your new password.', 'success', 4000);
+    closeForgotModal();
+    _resetOTP = null; _resetTarget = null;
+  } catch (err) {
+    showToast(err.message || 'Reset failed. Check your OTP.', 'danger');
+  }
 }
 
 function requireAuth() {
@@ -758,37 +825,44 @@ function animateCounter(id, target, duration) {
 // ADMIN LOGIC
 // ════════════════════════════════════════════════════════════
 
-function handleAdminLogin(e) {
+async function handleAdminLogin(e) {
   e.preventDefault();
   clearFieldError('admin-id');
   clearFieldError('admin-pass');
   const id   = document.getElementById('admin-id').value.trim();
   const pass = document.getElementById('admin-pass').value;
 
-  let admins = [];
-  try { admins = JSON.parse(localStorage.getItem('admins')) || []; } catch(err) {}
+  const btn = e.target.querySelector('[type="submit"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Verifying…'; }
+  const resetBtn = () => { if (btn) { btn.disabled = false; btn.textContent = 'Authorize Access'; } };
 
-  const isMaster   = (id === 'admin' && pass === 'admin123');
-  const dynAdmin   = admins.find(a => a.adminId === id);
-  const passMatch  = dynAdmin && dynAdmin.password === pass;
-
-  if (!isMaster && !dynAdmin) {
-    showFieldError('admin-id', '❌ Admin ID not found in the system.');
-    return;
+  try {
+    let name, dept;
+    if (BACKEND_URL) {
+      const res = await apiPost('/api/auth/admin/login', { id, pass });
+      name = res.name; dept = res.department;
+    } else {
+      let admins = [];
+      try { admins = JSON.parse(localStorage.getItem('admins')) || []; } catch(err) {}
+      const isMaster = (id === 'admin' && pass === 'admin123');
+      const dynAdmin = admins.find(a => a.adminId === id);
+      if (!isMaster && !dynAdmin) { resetBtn(); showFieldError('admin-id', '❌ Admin ID not found in the system.'); return; }
+      if (!isMaster && dynAdmin.password !== pass) { resetBtn(); showFieldError('admin-pass', '🔑 Incorrect admin password. Try again.'); return; }
+      name = dynAdmin ? dynAdmin.name : 'System Admin';
+      dept = dynAdmin ? dynAdmin.department : 'Central Command';
+    }
+    document.getElementById('admin-login-overlay').style.display = 'none';
+    document.getElementById('admin-dashboard').style.display = 'flex';
+    if (document.getElementById('admin-officer-name')) document.getElementById('admin-officer-name').textContent = name;
+    if (document.getElementById('admin-officer-dept')) document.getElementById('admin-officer-dept').textContent = dept;
+    showToast(`Access granted. Welcome, ${name} 👮`, 'success');
+    loadAdminStats(); loadEmergenciesTable(); loadIncidentsTable(); startClock();
+  } catch (err) {
+    resetBtn();
+    if (err.code === 'ID_NOT_FOUND') showFieldError('admin-id', '❌ Admin ID not found in the system.');
+    else if (err.code === 'WRONG_PASSWORD') showFieldError('admin-pass', '🔑 Incorrect admin password. Try again.');
+    else showToast(err.message || 'Login failed. Try again.', 'danger');
   }
-  if (!isMaster && !passMatch) {
-    showFieldError('admin-pass', '🔑 Incorrect admin password. Try again.');
-    return;
-  }
-
-  const name = dynAdmin ? dynAdmin.name : 'System Admin';
-  const dept = dynAdmin ? dynAdmin.department : 'Central Command';
-  document.getElementById('admin-login-overlay').style.display = 'none';
-  document.getElementById('admin-dashboard').style.display = 'flex';
-  if (document.getElementById('admin-officer-name')) document.getElementById('admin-officer-name').textContent = name;
-  if (document.getElementById('admin-officer-dept')) document.getElementById('admin-officer-dept').textContent = dept;
-  showToast(`Access granted. Welcome, ${name} 👮`, 'success');
-  loadAdminStats(); loadEmergenciesTable(); loadIncidentsTable(); startClock();
 }
 
 // ── Admin Forgot Password (via Clearance Code) ────────────────
@@ -826,23 +900,29 @@ function closeAdminForgot() {
   const m = document.getElementById('admin-forgot-modal');
   if (m) m.style.display = 'none';
 }
-function resetAdminPassword() {
+async function resetAdminPassword() {
   const id        = document.getElementById('areset-id')?.value.trim();
   const clearance = document.getElementById('areset-clearance')?.value.trim();
   const newPass   = document.getElementById('areset-newpass')?.value;
-  if (clearance !== '1234') { showToast('❌ Invalid security clearance code.', 'danger'); return; }
   if (!newPass || newPass.length < 6) { showToast('Password must be at least 6 characters.', 'warning'); return; }
-  if (id === 'admin') { showToast('Cannot reset the master admin account.', 'danger'); return; }
-  const admins = safeStorage.get('admins', []);
-  const idx    = admins.findIndex(a => a.adminId === id);
-  if (idx === -1) { showToast('❌ Admin ID not found.', 'danger'); return; }
-  admins[idx].password = newPass;
-  safeStorage.set('admins', admins);
-  showToast('✅ Admin password reset successfully!', 'success', 4000);
-  closeAdminForgot();
 
-// (rest of function closes below — placeholder for brace)
-void 0
+  try {
+    if (BACKEND_URL) {
+      await apiPost('/api/auth/admin/reset-password', { adminId: id, clearance, newPassword: newPass });
+    } else {
+      if (clearance !== '1234') { showToast('❌ Invalid security clearance code.', 'danger'); return; }
+      if (id === 'admin') { showToast('Cannot reset the master admin account.', 'danger'); return; }
+      const admins = safeStorage.get('admins', []);
+      const idx    = admins.findIndex(a => a.adminId === id);
+      if (idx === -1) { showToast('❌ Admin ID not found.', 'danger'); return; }
+      admins[idx].password = newPass;
+      safeStorage.set('admins', admins);
+    }
+    showToast('✅ Admin password reset successfully!', 'success', 4000);
+    closeAdminForgot();
+  } catch (err) {
+    showToast(err.message || 'Reset failed.', 'danger');
+  }
 }
 
 function adminLogout() {
