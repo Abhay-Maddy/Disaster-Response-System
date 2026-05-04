@@ -67,7 +67,7 @@
                 style="display:flex; align-items:center; gap:6px; font-size:0.82rem; color:var(--text-secondary); cursor:pointer;">
                 <input type="checkbox" style="width:auto; accent-color:var(--primary);"> Remember me
               </label>
-              <a href="#" style="font-size:0.82rem;">Forgot password?</a>
+              <a href="#" style="font-size:0.82rem;" onclick="event.preventDefault(); showForgotPassword()">Forgot password?</a>
             </div>
             <button type="submit" class="btn btn-primary btn-block btn-lg">Sign In to Dashboard</button>
           </form>

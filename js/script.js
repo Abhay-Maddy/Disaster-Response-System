@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    AI DISASTER RESPONSE SYSTEM — CORE SCRIPT v2.1
    Auth, SOS, Credits, Admin, Toasts, Theming, Predictions
    ============================================================ */
@@ -111,58 +111,118 @@ function startClock() {
 // ════════════════════════════════════════════════════════════
 
 let generatedOTP = null;
-let currentStep = 1;
+let currentStep  = 1;
+let _resendTimer = null;
 
+// ── Field-level inline error helpers ─────────────────────────
+function showFieldError(fieldId, msg) {
+  const field = document.getElementById(fieldId);
+  if (!field) return;
+  field.style.borderColor = 'var(--danger)';
+  field.parentElement.querySelectorAll('.field-err').forEach(e => e.remove());
+  const div = document.createElement('div');
+  div.className = 'field-err';
+  div.style.cssText = 'color:var(--danger);font-size:0.76rem;margin-top:4px;display:flex;align-items:center;gap:4px;';
+  div.textContent = msg;
+  field.parentElement.appendChild(div);
+  field.focus();
+}
+function clearFieldError(fieldId) {
+  const field = document.getElementById(fieldId);
+  if (!field) return;
+  field.style.borderColor = '';
+  field.parentElement.querySelectorAll('.field-err').forEach(e => e.remove());
+}
+
+// ── OTP Sent Popup ───────────────────────────────────────────
+function showOTPSentPopup(email) {
+  let modal = document.getElementById('otp-sent-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'otp-sent-modal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.65);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:1rem;';
+    modal.innerHTML = `
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:2.5rem 2rem;max-width:380px;width:100%;text-align:center;box-shadow:0 30px 60px rgba(0,0,0,0.5);">
+        <div style="width:72px;height:72px;background:linear-gradient(135deg,#10b981,#6366f1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2rem;margin:0 auto 1.25rem;box-shadow:0 8px 24px rgba(16,185,129,0.35);">✉️</div>
+        <h3 style="margin-bottom:0.4rem;font-size:1.3rem;">OTP Sent!</h3>
+        <p style="color:var(--text-secondary);font-size:0.875rem;margin-bottom:0.4rem;">Verification code sent to:</p>
+        <div id="otp-sent-email" style="font-weight:700;color:var(--primary);margin-bottom:0.75rem;word-break:break-all;"></div>
+        <p style="color:var(--text-tertiary);font-size:0.75rem;margin-bottom:1.5rem;">📬 Check your inbox and spam/junk folder</p>
+        <div id="otp-resend-timer" style="font-size:0.8rem;color:var(--text-tertiary);min-height:1.2rem;margin-bottom:0.75rem;"></div>
+        <button id="otp-resend-btn" class="btn btn-ghost btn-block" style="margin-bottom:0.75rem;" onclick="resendOTP()" disabled>🔄 Resend OTP</button>
+        <button class="btn btn-primary btn-block" onclick="closeOTPModal()">Got it — Enter OTP →</button>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+  document.getElementById('otp-sent-email').textContent = email;
+  modal.style.display = 'flex';
+  _startResendCountdown(30);
+}
+function closeOTPModal() {
+  const m = document.getElementById('otp-sent-modal');
+  if (m) m.style.display = 'none';
+  document.getElementById('otp-1')?.focus();
+}
+function _startResendCountdown(sec) {
+  clearInterval(_resendTimer);
+  const timerEl = document.getElementById('otp-resend-timer');
+  const resBtn  = document.getElementById('otp-resend-btn');
+  if (resBtn) resBtn.disabled = true;
+  let t = sec;
+  const tick = () => {
+    if (timerEl) timerEl.textContent = t > 0 ? `Resend available in ${t}s` : '';
+    if (resBtn && t <= 0) resBtn.disabled = false;
+    if (t-- <= 0) clearInterval(_resendTimer);
+  };
+  tick();
+  _resendTimer = setInterval(tick, 1000);
+}
+async function resendOTP() {
+  closeOTPModal();
+  await sendOTP();
+}
+
+// ── OTP Send (Registration) ───────────────────────────────────
 async function sendOTP() {
   const email  = document.getElementById('reg-email')?.value?.trim();
-  const phone  = document.getElementById('reg-phone')?.value?.trim();
   const method = document.querySelector('.otp-method-chip.selected')?.dataset.method || 'email';
   const name   = document.getElementById('reg-name')?.value?.trim() || 'User';
 
   if (method === 'phone') {
-    showToast('📧 Phone OTP unavailable — switching to Email OTP. Please select Email and try again.', 'warning', 5000);
+    showToast('📧 Phone OTP unavailable — please select Email.', 'warning', 4000);
     document.querySelector('[data-method="email"]')?.click();
     return;
   }
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    showToast('Please enter a valid email address first.', 'warning');
+    showFieldError('reg-email', 'Please enter a valid email address.');
     return;
   }
+  clearFieldError('reg-email');
 
-  // Generate 4-digit OTP
   generatedOTP = Math.floor(1000 + Math.random() * 9000).toString();
-
-  // Loading state
   const btn = document.querySelector('[onclick="sendOTP()"]');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Sending…'; }
 
-  // Check EmailJS is configured
   const isConfigured = EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY';
-
   if (isConfigured && typeof emailjs !== 'undefined') {
-    // ── Real email via EmailJS ────────────────────────────────
     try {
-      await emailjs.send(
-        EMAILJS_SERVICE_ID,
-        EMAILJS_TEMPLATE_ID,
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
         { to_email: email, otp_code: generatedOTP, to_name: name },
-        EMAILJS_PUBLIC_KEY
-      );
-      showToast(`✉️ OTP sent to ${email} — check your inbox!`, 'success', 4000);
+        { publicKey: EMAILJS_PUBLIC_KEY });
+      showOTPSentPopup(email);
       goToStep(2);
     } catch (err) {
       console.error('EmailJS error:', err);
-      showToast('Failed to send OTP email. Please check your email address.', 'danger');
+      showToast('Failed to send OTP. Please check your email address.', 'danger');
     }
   } else {
-    // ── Demo mode (EmailJS not yet configured) ────────────────
-    // Shows OTP in a non-blocking toast instead of an alert
-    console.info(`[DEMO] OTP for ${email}: ${generatedOTP}`);
-    showToast(`🔐 Demo OTP: ${generatedOTP} (configure EmailJS for real emails)`, 'info', 10000);
+    console.info(`[DEMO] OTP: ${generatedOTP}`);
+    showOTPSentPopup(email);
+    // Also show in toast for demo
+    showToast(`🔐 Demo OTP: ${generatedOTP}`, 'info', 15000);
     goToStep(2);
   }
-
   if (btn) { btn.disabled = false; btn.textContent = 'Send Verification Code'; }
 }
 
@@ -267,27 +327,133 @@ function handleRegister(e) {
 
 function handleLogin(e) {
   e.preventDefault();
+  clearFieldError('login-email');
+  clearFieldError('login-password');
   const email    = document.getElementById('login-email').value.trim().toLowerCase();
   const password = document.getElementById('login-password').value;
 
-  // Show loading state
   const btn = e.target.querySelector('[type="submit"]');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Signing in…'; }
+  const resetBtn = () => { if (btn) { btn.disabled = false; btn.textContent = 'Sign In to Dashboard'; } };
 
-  const users = safeStorage.get('users', []);
-  const user  = users.find(u => u.email?.toLowerCase() === email && u.password === password);
+  const users     = safeStorage.get('users', []);
+  const emailUser = users.find(u => u.email?.toLowerCase() === email);
 
-  if (user) {
-    safeStorage.set('currentUser', user);
-    showToast(`Welcome back, ${user.name}! 🎉`, 'success');
-    setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);
-  } else {
-    if (btn) { btn.disabled = false; btn.textContent = 'Sign In to Dashboard'; }
-    showToast('Invalid email or password.', 'danger');
-    const card = document.querySelector('.auth-form-side');
-    card?.classList.add('shake');
-    setTimeout(() => card?.classList.remove('shake'), 500);
+  if (!emailUser) {
+    resetBtn();
+    showFieldError('login-email', '❌ This email is not registered. Please sign up first.');
+    return;
   }
+  if (emailUser.password !== password) {
+    resetBtn();
+    showFieldError('login-password', '🔑 Incorrect password. Please try again.');
+    return;
+  }
+
+  safeStorage.set('currentUser', emailUser);
+  showToast(`Welcome back, ${emailUser.name}! 🎉`, 'success');
+  setTimeout(() => { window.location.href = 'dashboard.html'; }, 900);
+}
+
+// ── Forgot Password (User) ────────────────────────────────────
+let _resetOTP = null, _resetTarget = null;
+
+function showForgotPassword() {
+  let m = document.getElementById('forgot-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'forgot-modal';
+    m.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.65);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:1rem;';
+    m.innerHTML = `
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:2.5rem 2rem;max-width:400px;width:100%;box-shadow:0 30px 60px rgba(0,0,0,0.5);">
+        <div id="frgt-s1">
+          <h3 style="margin-bottom:0.3rem;">🔐 Reset Password</h3>
+          <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:1.5rem;">Enter your registered email to receive an OTP</p>
+          <div class="form-group">
+            <label class="form-label">Registered Email</label>
+            <input type="email" id="frgt-email" class="form-control" placeholder="you@example.com">
+          </div>
+          <button class="btn btn-primary btn-block" onclick="sendResetOTP()">Send OTP</button>
+          <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeForgotModal()">Cancel</button>
+        </div>
+        <div id="frgt-s2" style="display:none">
+          <h3 style="margin-bottom:0.3rem;">Enter Verification Code</h3>
+          <p id="frgt-hint" style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1.25rem;"></p>
+          <div class="otp-inputs" style="margin-bottom:1.25rem;">
+            <input type="text" class="otp-input" id="rotp-1" maxlength="1" inputmode="numeric" oninput="_rotpIn(this,1)" onkeydown="_rotpKey(this,1,event)">
+            <input type="text" class="otp-input" id="rotp-2" maxlength="1" inputmode="numeric" oninput="_rotpIn(this,2)" onkeydown="_rotpKey(this,2,event)">
+            <input type="text" class="otp-input" id="rotp-3" maxlength="1" inputmode="numeric" oninput="_rotpIn(this,3)" onkeydown="_rotpKey(this,3,event)">
+            <input type="text" class="otp-input" id="rotp-4" maxlength="1" inputmode="numeric" oninput="_rotpIn(this,4)" onkeydown="_rotpKey(this,4,event)">
+          </div>
+          <div class="form-group">
+            <label class="form-label">New Password</label>
+            <input type="password" id="frgt-newpass" class="form-control" placeholder="Min 8 characters">
+          </div>
+          <button class="btn btn-primary btn-block" onclick="resetUserPassword()">✅ Reset Password</button>
+          <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeForgotModal()">Cancel</button>
+        </div>
+      </div>`;
+    document.body.appendChild(m);
+  }
+  document.getElementById('frgt-s1').style.display = 'block';
+  document.getElementById('frgt-s2').style.display = 'none';
+  m.style.display = 'flex';
+  setTimeout(() => document.getElementById('frgt-email')?.focus(), 50);
+}
+function closeForgotModal() {
+  const m = document.getElementById('forgot-modal');
+  if (m) m.style.display = 'none';
+}
+function _rotpIn(el, i) {
+  el.value = el.value.replace(/\D/, '');
+  el.classList.toggle('filled', !!el.value);
+  if (el.value && i < 4) document.getElementById(`rotp-${i+1}`)?.focus();
+}
+function _rotpKey(el, i, ev) {
+  if (ev.key === 'Backspace' && !el.value && i > 1) document.getElementById(`rotp-${i-1}`)?.focus();
+}
+async function sendResetOTP() {
+  const email = document.getElementById('frgt-email')?.value?.trim().toLowerCase();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Enter a valid email.', 'warning'); return; }
+  const users = safeStorage.get('users', []);
+  const user  = users.find(u => u.email?.toLowerCase() === email);
+  if (!user) { showToast('❌ Email not registered.', 'danger'); return; }
+  _resetOTP = Math.floor(1000 + Math.random() * 9000).toString();
+  _resetTarget = email;
+  const isConfigured = EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY';
+  if (isConfigured && typeof emailjs !== 'undefined') {
+    try {
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
+        { to_email: email, otp_code: _resetOTP, to_name: user.name || 'User' },
+        { publicKey: EMAILJS_PUBLIC_KEY });
+    } catch(err) { showToast('Failed to send OTP. Try again.', 'danger'); return; }
+  } else {
+    showToast(`🔐 Demo Reset OTP: ${_resetOTP}`, 'info', 15000);
+  }
+  document.getElementById('frgt-s1').style.display = 'none';
+  document.getElementById('frgt-s2').style.display = 'block';
+  document.getElementById('frgt-hint').textContent = `Code sent to ${email}`;
+  showToast(`✉️ OTP sent to ${email}`, 'success');
+  document.getElementById('rotp-1')?.focus();
+}
+function resetUserPassword() {
+  const entered = [1,2,3,4].map(i => document.getElementById(`rotp-${i}`)?.value||'').join('');
+  const newPass = document.getElementById('frgt-newpass')?.value;
+  if (entered !== _resetOTP) {
+    showToast('Invalid OTP. Try again.', 'danger');
+    [1,2,3,4].forEach(i => { const e = document.getElementById(`rotp-${i}`); if(e) e.value=''; });
+    document.getElementById('rotp-1')?.focus();
+    return;
+  }
+  if (!newPass || newPass.length < 6) { showToast('Password must be at least 6 characters.', 'warning'); return; }
+  const users = safeStorage.get('users', []);
+  const idx   = users.findIndex(u => u.email?.toLowerCase() === _resetTarget);
+  if (idx === -1) { showToast('User not found.', 'danger'); return; }
+  users[idx].password = newPass;
+  safeStorage.set('users', users);
+  showToast('✅ Password reset! Please login with your new password.', 'success', 4000);
+  closeForgotModal();
+  _resetOTP = null; _resetTarget = null;
 }
 
 function requireAuth() {
@@ -594,30 +760,89 @@ function animateCounter(id, target, duration) {
 
 function handleAdminLogin(e) {
   e.preventDefault();
+  clearFieldError('admin-id');
+  clearFieldError('admin-pass');
   const id   = document.getElementById('admin-id').value.trim();
   const pass = document.getElementById('admin-pass').value;
 
   let admins = [];
   try { admins = JSON.parse(localStorage.getItem('admins')) || []; } catch(err) {}
-  const dynAdmin = admins.find(a => a.adminId === id && a.password === pass);
 
-  if ((id === 'admin' && pass === 'admin123') || dynAdmin) {
-    const name = dynAdmin ? dynAdmin.name : 'System Admin';
-    const dept = dynAdmin ? dynAdmin.department : 'Central Command';
-    document.getElementById('admin-login-overlay').style.display = 'none';
-    document.getElementById('admin-dashboard').style.display = 'flex';
-    if (document.getElementById('admin-officer-name')) document.getElementById('admin-officer-name').textContent = name;
-    if (document.getElementById('admin-officer-dept')) document.getElementById('admin-officer-dept').textContent = dept;
-    showToast(`Access granted. Welcome, ${name} 👮`, 'success');
-    loadAdminStats();
-    loadEmergenciesTable();
-    loadIncidentsTable();
-    startClock();
-  } else {
-    showToast('Unauthorized access attempt logged.', 'danger');
-    const card = document.querySelector('.auth-form-side');
-    if (card) { card.style.animation = 'shake 0.4s ease'; setTimeout(() => card.style.animation = '', 400); }
+  const isMaster   = (id === 'admin' && pass === 'admin123');
+  const dynAdmin   = admins.find(a => a.adminId === id);
+  const passMatch  = dynAdmin && dynAdmin.password === pass;
+
+  if (!isMaster && !dynAdmin) {
+    showFieldError('admin-id', '❌ Admin ID not found in the system.');
+    return;
   }
+  if (!isMaster && !passMatch) {
+    showFieldError('admin-pass', '🔑 Incorrect admin password. Try again.');
+    return;
+  }
+
+  const name = dynAdmin ? dynAdmin.name : 'System Admin';
+  const dept = dynAdmin ? dynAdmin.department : 'Central Command';
+  document.getElementById('admin-login-overlay').style.display = 'none';
+  document.getElementById('admin-dashboard').style.display = 'flex';
+  if (document.getElementById('admin-officer-name')) document.getElementById('admin-officer-name').textContent = name;
+  if (document.getElementById('admin-officer-dept')) document.getElementById('admin-officer-dept').textContent = dept;
+  showToast(`Access granted. Welcome, ${name} 👮`, 'success');
+  loadAdminStats(); loadEmergenciesTable(); loadIncidentsTable(); startClock();
+}
+
+// ── Admin Forgot Password (via Clearance Code) ────────────────
+function showAdminForgot() {
+  let m = document.getElementById('admin-forgot-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'admin-forgot-modal';
+    m.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.65);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:1rem;';
+    m.innerHTML = `
+      <div style="background:var(--bg-card);border:1px solid rgba(239,68,68,0.3);border-radius:20px;padding:2.5rem 2rem;max-width:400px;width:100%;box-shadow:0 30px 60px rgba(0,0,0,0.5);">
+        <h3 style="margin-bottom:0.3rem;color:var(--danger);">🔐 Admin Password Reset</h3>
+        <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:1.5rem;">Verify your Admin ID and Security Clearance to set a new password.</p>
+        <div class="form-group">
+          <label class="form-label">Admin ID</label>
+          <input type="text" id="areset-id" class="form-control" placeholder="Your Admin ID">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Security Clearance Code</label>
+          <input type="password" id="areset-clearance" class="form-control" placeholder="Enter clearance code">
+        </div>
+        <div class="form-group">
+          <label class="form-label">New Password</label>
+          <input type="password" id="areset-newpass" class="form-control" placeholder="Min 6 characters">
+        </div>
+        <button class="btn btn-danger btn-block" onclick="resetAdminPassword()">Reset Admin Password</button>
+        <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeAdminForgot()">Cancel</button>
+      </div>`;
+    document.body.appendChild(m);
+  }
+  m.style.display = 'flex';
+  setTimeout(() => document.getElementById('areset-id')?.focus(), 50);
+}
+function closeAdminForgot() {
+  const m = document.getElementById('admin-forgot-modal');
+  if (m) m.style.display = 'none';
+}
+function resetAdminPassword() {
+  const id        = document.getElementById('areset-id')?.value.trim();
+  const clearance = document.getElementById('areset-clearance')?.value.trim();
+  const newPass   = document.getElementById('areset-newpass')?.value;
+  if (clearance !== '1234') { showToast('❌ Invalid security clearance code.', 'danger'); return; }
+  if (!newPass || newPass.length < 6) { showToast('Password must be at least 6 characters.', 'warning'); return; }
+  if (id === 'admin') { showToast('Cannot reset the master admin account.', 'danger'); return; }
+  const admins = safeStorage.get('admins', []);
+  const idx    = admins.findIndex(a => a.adminId === id);
+  if (idx === -1) { showToast('❌ Admin ID not found.', 'danger'); return; }
+  admins[idx].password = newPass;
+  safeStorage.set('admins', admins);
+  showToast('✅ Admin password reset successfully!', 'success', 4000);
+  closeAdminForgot();
+
+// (rest of function closes below — placeholder for brace)
+void 0
 }
 
 function adminLogout() {

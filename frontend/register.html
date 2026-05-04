@@ -130,8 +130,12 @@
               Create My Account
             </button>
             <button type="button" class="btn btn-ghost btn-block" style="margin-top:8px" onclick="goToStep(1)">
-              Go Back
+              ← Go Back
             </button>
+            <div style="text-align:center; margin-top:1rem; font-size:0.8rem; color:var(--text-tertiary);">
+              Didn't receive the code?
+              <button type="button" style="background:none;border:none;color:var(--primary);font-size:0.8rem;cursor:pointer;padding:0;margin-left:4px;text-decoration:underline;" onclick="resendOTP()">Resend OTP</button>
+            </div>
           </div>
         </form>
 
