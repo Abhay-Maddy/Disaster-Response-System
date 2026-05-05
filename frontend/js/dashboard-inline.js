@@ -215,10 +215,25 @@ const _origInit = initDashboard;
     // ════════════════════════════════
     var _communityFilter = 'all';
 
-    function loadCommunityFeed() {
+    async function loadCommunityFeed() {
       const container = document.getElementById('community-feed-list');
       if (!container) return;
-      let incidents = JSON.parse(localStorage.getItem('incidents')) || [];
+      container.innerHTML = `<div style="text-align:center;padding:3rem;color:var(--text-tertiary);">Loading reports\u2026</div>`;
+
+      let incidents = [];
+      try {
+        if (typeof BACKEND_URL !== 'undefined' && BACKEND_URL) {
+          const res = await fetch(`${BACKEND_URL}/api/incidents`);
+          if (res.ok) incidents = await res.json();
+        }
+      } catch (e) {
+        console.warn('Backend fetch failed, using localStorage:', e.message);
+      }
+      // Merge with localStorage so locally submitted ones appear immediately
+      const local = JSON.parse(localStorage.getItem('incidents')) || [];
+      const backendIds = new Set(incidents.map(i => i._id || String(i.id)));
+      const localOnly = local.filter(l => !backendIds.has(String(l.id)));
+      incidents = [...incidents, ...localOnly];
 
       if (_communityFilter !== 'all') {
         incidents = incidents.filter(i => i.type === _communityFilter);
@@ -241,7 +256,7 @@ const _origInit = initDashboard;
               </div>
               <div>
                 <div style="font-weight:600; font-size:0.875rem;">${inc.userName || inc.reportedBy || 'Anonymous'}</div>
-                <div style="font-size:0.72rem; color:var(--text-tertiary);">${inc.time || ''}</div>
+                <div style="font-size:0.72rem; color:var(--text-tertiary);">${inc.time || (inc.createdAt ? new Date(inc.createdAt).toLocaleString() : '') || ''}</div>
               </div>
             </div>
             <div style="display:flex; gap:6px; align-items:center;">
@@ -251,10 +266,10 @@ const _origInit = initDashboard;
           </div>
           <div style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:0.5rem;">${inc.description || ''}</div>
           <div style="display:flex; align-items:center; gap:6px; font-size:0.75rem; color:var(--text-tertiary);">
-            <span>Location: ${inc.location || 'Not specified'}</span>
+            <span>\ud83d\udccd ${inc.location || 'Not specified'}</span>
             ${inc.verificationStatus ? `<span style="margin-left:auto; color:${statusColor[inc.verificationStatus] || ''}; font-weight:600;">${inc.verificationStatus}</span>` : ''}
           </div>
-          ${inc.photo ? `<img class="community-photo" src="${inc.photo}" alt="Incident photo" onclick="viewCommunityPhoto('${inc.id}')">` : ''}
+          ${inc.photo ? `<img class="community-photo" src="${inc.photo}" alt="Incident photo">` : ''}
         </div>
       `).join('');
     }

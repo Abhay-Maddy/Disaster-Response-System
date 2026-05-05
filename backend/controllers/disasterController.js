@@ -1,6 +1,5 @@
 const Disaster = require('../models/Disaster');
 const axios = require('axios');
-const { dbConfig } = require('../config/db');
 
 // In-Memory database for when MongoDB drops or isn't set up.
 let mockDisasters = [
@@ -35,10 +34,6 @@ let mockDisasters = [
 // @access  Public
 const getDisasters = async (req, res) => {
     try {
-        if (!dbConfig.isConnected) {
-            return res.status(200).json(mockDisasters);
-        }
-        
         const disasters = await Disaster.find().sort({ createdAt: -1 });
         res.status(200).json(disasters.length ? disasters : mockDisasters);
     } catch (error) {
@@ -84,15 +79,6 @@ const addDisaster = async (req, res) => {
             status: 'Reported',
             createdAt: new Date()
         };
-
-        if (!dbConfig.isConnected) {
-            const newMock = { 
-                _id: Date.now().toString(), 
-                ...newDisasterData 
-            };
-            mockDisasters.unshift(newMock);
-            return res.status(201).json(newMock);
-        }
 
         const newDisaster = new Disaster(newDisasterData);
         const savedDisaster = await newDisaster.save();

@@ -1,6 +1,6 @@
 require('dotenv').config();
-const express  = require('express');
-const cors     = require('cors');
+const express = require('express');
+const cors = require('cors');
 const mongoose = require('mongoose');
 
 const app = express();
@@ -24,7 +24,10 @@ mongoose.connect(process.env.MONGO_URI)
   .catch(err => { console.error('❌ MongoDB connection error:', err.message); process.exit(1); });
 
 // ── Routes ─────────────────────────────────────────────────────
-app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/auth',      require('./routes/authRoutes'));
+app.use('/api/disasters', require('./routes/disasterRoutes'));
+app.use('/api/incidents', require('./routes/incidentRoutes'));
+app.use('/api/sos',       require('./routes/sosRoutes'));
 
 // Health check
 app.get('/', (req, res) => res.json({ status: 'OK', message: 'Disaster Response API running' }));

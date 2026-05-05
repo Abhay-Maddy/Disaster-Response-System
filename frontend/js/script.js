@@ -655,21 +655,40 @@ function triggerSOS() {
   }
 }
 
-function dispatchSOS(lat, lng) {
-  const emergencies = safeStorage.get('emergencies', []);
+async function dispatchSOS(lat, lng) {
+  const location = (lat === 'Unknown' || lat === 'Not Supported') ? 'Location unavailable' : `${parseFloat(lat).toFixed(5)}, ${parseFloat(lng).toFixed(5)}`;
   const request = {
     id: Date.now(),
-    userId: currentUser.id,
-    userName: currentUser.name,
-    location: (lat === 'Unknown' || lat === 'Not Supported') ? 'Location unavailable' : `${parseFloat(lat).toFixed(5)}, ${parseFloat(lng).toFixed(5)}`,
-    address: currentUser.address,
-    contact: currentUser.phone,
-    emergencyContact: currentUser.emergencyContact,
+    userId: currentUser?.id || '',
+    userName: currentUser?.name || 'Unknown',
+    location,
+    address: currentUser?.address || '',
+    contact: currentUser?.phone || '',
+    emergencyContact: currentUser?.emergencyContact || '',
     time: new Date().toLocaleString(),
     status: 'Emergency'
   };
+
+  // Save to localStorage for immediate admin table display
+  const emergencies = safeStorage.get('emergencies', []);
   emergencies.unshift(request);
   safeStorage.set('emergencies', emergencies);
+
+  // Also persist to MongoDB
+  if (BACKEND_URL) {
+    fetch(`${BACKEND_URL}/api/sos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userName:         request.userName,
+        userEmail:        currentUser?.email || '',
+        location:         request.location,
+        address:          request.address,
+        contact:          request.contact,
+        emergencyContact: request.emergencyContact
+      })
+    }).catch(err => console.warn('SOS backend save failed:', err.message));
+  }
 
   // Show success state on button
   const btn = document.getElementById('sos-btn');
@@ -697,42 +716,59 @@ function selectIncidentType(type) {
   }
 }
 
-function handleIncidentReport(e) {
+async function handleIncidentReport(e) {
   e.preventDefault();
   if (!selectedIncidentType) { showToast('Please select an incident type.', 'warning'); return; }
 
   const location = document.getElementById('incident-location').value.trim();
   const desc     = document.getElementById('incident-desc').value.trim();
   const severity = document.getElementById('incident-severity').value;
+  const gps      = document.getElementById('report-gps')?.textContent || '';
 
-  const incidents = safeStorage.get('incidents', []);
-  incidents.unshift({
-    id: Date.now(),
-    type: selectedIncidentType,
-    location, description: desc, severity,
-    reportedBy: currentUser.name,
-    userName: currentUser.name,
-    userId: currentUser.id,
-    time: new Date().toLocaleString(),
-    status: 'reported',
+  const btn = e.target.querySelector('[type="submit"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Submitting…'; }
+
+  const incidentData = {
+    type:        selectedIncidentType,
+    location,
+    description: desc,
+    severity,
+    reportedBy:  currentUser?.name  || 'Anonymous',
+    userEmail:   currentUser?.email || '',
+    gps,
     photo:     _incidentPhotoData.src  || null,
     photoName: _incidentPhotoData.name || null
-  });
-  safeStorage.set('incidents', incidents);
+  };
 
-  // Reset everything
-  showToast(`${selectedIncidentType} incident reported. Authorities alerted.`, 'success');
-  e.target.reset();
-  selectedIncidentType = '';
-  _incidentPhotoData = { src: null, name: null };
-  document.querySelectorAll('.type-chip').forEach(c => c.classList.remove('selected','danger-chip','warning-chip'));
-  const resetPreview    = document.getElementById('image-preview');
-  const resetPreviewBox = document.getElementById('image-preview-box');
-  const resetUploadZone = document.getElementById('upload-zone');
-  if (resetPreview)    resetPreview.src = '';
-  if (resetPreviewBox) resetPreviewBox.style.display = 'none';
-  if (resetUploadZone) resetUploadZone.style.display = 'block';
-  switchSection('sec-home');
+  try {
+    if (BACKEND_URL) {
+      await fetch(`${BACKEND_URL}/api/incidents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(incidentData)
+      });
+    }
+    // Always mirror to localStorage for immediate admin table refresh
+    const incidents = safeStorage.get('incidents', []);
+    incidents.unshift({ id: Date.now(), ...incidentData, time: new Date().toLocaleString(), status: 'reported' });
+    safeStorage.set('incidents', incidents);
+
+    showToast(`${selectedIncidentType} incident reported. Authorities alerted.`, 'success');
+    e.target.reset();
+    selectedIncidentType = '';
+    _incidentPhotoData = { src: null, name: null };
+    document.querySelectorAll('.type-chip').forEach(c => c.classList.remove('selected','danger-chip','warning-chip'));
+    const resetPreview    = document.getElementById('image-preview');
+    const resetPreviewBox = document.getElementById('image-preview-box');
+    const resetUploadZone = document.getElementById('upload-zone');
+    if (resetPreview)    resetPreview.src = '';
+    if (resetPreviewBox) resetPreviewBox.style.display = 'none';
+    if (resetUploadZone) resetUploadZone.style.display = 'block';
+    switchSection('sec-home');
+  } catch (err) {
+    showToast('Failed to submit report. Try again.', 'danger');
+  }
+  if (btn) { btn.disabled = false; btn.textContent = 'Submit Report'; }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1080,7 +1116,7 @@ function adminViewPhoto(idx) {
 // ADMIN REGISTRATION
 // ════════════════════════════════════════════════════════════
 
-function handleAdminRegister(e) {
+async function handleAdminRegister(e) {
   e.preventDefault();
   const name      = document.getElementById('admin-name').value.trim();
   const adminId   = document.getElementById('admin-badge').value.trim();
@@ -1089,19 +1125,33 @@ function handleAdminRegister(e) {
   const clearance = document.getElementById('admin-clearance').value.trim();
   const region    = document.getElementById('admin-region').value.trim();
 
-  if (clearance !== '1234') {
-    showToast('Invalid Security Clearance Code!', 'danger'); return;
-  }
+  const btn = e.target.querySelector('[type="submit"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Creating…'; }
 
-  const admins = safeStorage.get('admins', []);
-  if (admins.find(a => a.adminId === adminId) || adminId.toLowerCase() === 'admin') {
-    showToast('This Admin ID is already in use.', 'danger'); return;
+  try {
+    if (BACKEND_URL) {
+      await apiPost('/api/auth/admin/register', { name, adminId, department: dept, password: pass, clearance, region });
+    } else {
+      if (clearance !== '1234') {
+        showToast('Invalid Security Clearance Code!', 'danger');
+        if (btn) { btn.disabled = false; btn.textContent = 'Create Government Account'; }
+        return;
+      }
+      const admins = safeStorage.get('admins', []);
+      if (admins.find(a => a.adminId === adminId) || adminId.toLowerCase() === 'admin') {
+        showToast('This Admin ID is already in use.', 'danger');
+        if (btn) { btn.disabled = false; btn.textContent = 'Create Government Account'; }
+        return;
+      }
+      admins.push({ id: Date.now(), name, adminId, department: dept, region, password: pass, createdAt: new Date().toLocaleDateString() });
+      safeStorage.set('admins', admins);
+    }
+    showToast('Government account created! Redirecting…', 'success', 2000);
+    setTimeout(() => { window.location.href = 'admin.html'; }, 1800);
+  } catch (err) {
+    showToast(err.message || 'Registration failed. Try again.', 'danger');
+    if (btn) { btn.disabled = false; btn.textContent = 'Create Government Account'; }
   }
-
-  admins.push({ id: Date.now(), name, adminId, department: dept, region, password: pass, createdAt: new Date().toLocaleDateString() });
-  safeStorage.set('admins', admins);
-  showToast('Government account created! Redirecting…', 'success', 2000);
-  setTimeout(() => { window.location.href = 'admin.html'; }, 1800);
 }
 
 // ════════════════════════════════════════════════════════════
