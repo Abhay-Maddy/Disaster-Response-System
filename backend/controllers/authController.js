@@ -107,13 +107,21 @@ exports.sendOTP = async (req, res) => {
     console.log(`💾 OTP saved to database for ${lowerEmail}`);
 
     // Send email
-    await sendOTPEmail(lowerEmail, name, otp);
-    console.log(`✅ OTP email sent successfully to ${lowerEmail}`);
+    let msg = `OTP sent to ${email}`;
+    let demoOTP = null;
+    try {
+      await sendOTPEmail(lowerEmail, name, otp);
+      console.log(`✅ OTP email sent successfully to ${lowerEmail}`);
+    } catch (emailErr) {
+      console.warn(`⚠️ Email failed (${emailErr.message}). Using fallback demo OTP.`);
+      msg = `Email service failed. Demo OTP is: ${otp}`;
+      demoOTP = otp;
+    }
 
-    res.json({ success: true, message: `OTP sent to ${email}` });
+    res.json({ success: true, message: msg, demoOTP });
   } catch (err) {
     console.error('❌ sendOTP error:', err.message);
-    res.status(500).json({ message: 'Failed to send OTP: ' + err.message });
+    res.status(500).json({ message: 'Failed to process request: ' + err.message });
   }
 };
 

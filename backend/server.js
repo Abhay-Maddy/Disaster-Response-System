@@ -44,8 +44,19 @@ mongoose.connect(process.env.MONGO_URI)
     console.log('✅ MongoDB connected');
     dbConnected = true;
   })
-  .catch(err => {
+  .catch(async err => {
     console.error('❌ MongoDB connection error:', err.message);
+    console.log('⚠️  Falling back to in-memory MongoDB for development/testing...');
+    try {
+      const { MongoMemoryServer } = require('mongodb-memory-server');
+      const mongoServer = await MongoMemoryServer.create();
+      const memUri = mongoServer.getUri();
+      await mongoose.connect(memUri);
+      console.log('✅ In-memory MongoDB connected at', memUri);
+      dbConnected = true;
+    } catch (memErr) {
+      console.error('❌ Failed to start in-memory MongoDB:', memErr.message);
+    }
   });
 
 // ── Routes ────────────────────────────────────────────────────

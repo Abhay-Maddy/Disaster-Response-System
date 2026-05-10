@@ -231,9 +231,12 @@ async function sendOTP() {
   try {
     if (BACKEND_URL) {
       // ── Real backend email via Nodemailer/Gmail ───────────────
-      await apiPost('/api/auth/send-otp', { email, name, purpose: 'register' });
+      const res = await apiPost('/api/auth/send-otp', { email, name, purpose: 'register' });
       generatedOTP = '__BACKEND__'; // backend stores OTP; we just flag it
       showOTPSentPopup(email);
+      if (res.demoOTP) {
+        showToast(`🔐 Demo OTP: ${res.demoOTP} (Email Failed)`, 'info', 20000);
+      }
       goToStep(2);
     } else if (typeof emailjs !== 'undefined') {
       // ── EmailJS fallback ────────────────────────────────
@@ -468,8 +471,11 @@ async function sendResetOTP() {
 
   try {
     if (BACKEND_URL) {
-      await apiPost('/api/auth/send-otp', { email, name: 'User', purpose: 'reset' });
+      const res = await apiPost('/api/auth/send-otp', { email, name: 'User', purpose: 'reset' });
       _resetOTP = '__BACKEND__';
+      if (res.demoOTP) {
+        showToast(`🔐 Demo OTP: ${res.demoOTP} (Email Failed)`, 'info', 20000);
+      }
     } else {
       const users = safeStorage.get('users', []);
       const user  = users.find(u => u.email?.toLowerCase() === email);
