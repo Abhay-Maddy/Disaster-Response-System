@@ -58,13 +58,28 @@ app.use('/api/sos',       require('./routes/sosRoutes'));
 app.get('/', (req, res) => res.json({
   status: 'OK',
   message: 'Disaster Response API running',
-  db: dbConnected ? 'connected' : 'disconnected'
+  db: dbConnected ? 'connected' : 'disconnected',
+  email: !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASS) ? 'configured' : 'NOT CONFIGURED'
+}));
+
+// ── Debug endpoint (check env var status without revealing secrets) ──
+app.get('/debug', (req, res) => res.json({
+  MONGO_URI: process.env.MONGO_URI ? '✅ SET (' + process.env.MONGO_URI.substring(0, 20) + '...)' : '❌ NOT SET',
+  GMAIL_USER: process.env.GMAIL_USER ? '✅ SET (' + process.env.GMAIL_USER + ')' : '❌ NOT SET',
+  GMAIL_APP_PASS: process.env.GMAIL_APP_PASS ? '✅ SET (hidden)' : '❌ NOT SET',
+  ML_PREDICT_URL: process.env.ML_PREDICT_URL || '❌ NOT SET',
+  PORT: process.env.PORT || '5000 (default)',
+  dbConnected,
+  nodeVersion: process.version
 }));
 
 // ── Error handler ─────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err.message);
-  res.status(500).json({ message: err.message || 'Internal server error' });
+  // Don't hang — always send a response
+  if (!res.headersSent) {
+    res.status(500).json({ message: err.message || 'Internal server error' });
+  }
 });
 
 // ── Start ─────────────────────────────────────────────────────

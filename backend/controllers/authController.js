@@ -3,22 +3,51 @@ const User  = require('../models/User');
 const Admin = require('../models/Admin');
 const OTP   = require('../models/OTP');
 
+// ── Email configuration check ────────────────────────────────────
+const GMAIL_USER     = process.env.GMAIL_USER;
+const GMAIL_APP_PASS = process.env.GMAIL_APP_PASS;
+const emailConfigured = !!(GMAIL_USER && GMAIL_APP_PASS);
+
+if (!emailConfigured) {
+  console.warn('⚠️  GMAIL_USER or GMAIL_APP_PASS is NOT set! OTP emails will NOT be sent.');
+  console.warn('   Set these environment variables on Render → Dashboard → Environment.');
+} else {
+  console.log(`✅ Email configured for: ${GMAIL_USER}`);
+}
+
 // ── Email transporter (Gmail SMTP) ───────────────────────────────
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASS   // 16-char App Password, NOT your Gmail password
-  }
-});
+// Only create a real transporter if credentials are available
+let transporter = null;
+if (emailConfigured) {
+  transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: GMAIL_USER,
+      pass: GMAIL_APP_PASS   // 16-char App Password, NOT your Gmail password
+    },
+    // Add timeouts so the server never hangs indefinitely
+    connectionTimeout: 10000,  // 10 seconds to connect
+    greetingTimeout:   10000,  // 10 seconds for SMTP greeting
+    socketTimeout:     15000   // 15 seconds for socket idle
+  });
+
+  // Verify transporter connectivity at startup (non-blocking)
+  transporter.verify()
+    .then(() => console.log('✅ Gmail SMTP transporter verified — emails ready'))
+    .catch(err => console.error('❌ Gmail SMTP verification FAILED:', err.message));
+}
 
 // ── Generate 4-digit OTP ─────────────────────────────────────────
 const genOTP = () => Math.floor(1000 + Math.random() * 9000).toString();
 
 // ── Send OTP email ───────────────────────────────────────────────
 async function sendOTPEmail(to, name, otp) {
+  if (!transporter) {
+    throw new Error('Email service not configured. GMAIL_USER and GMAIL_APP_PASS must be set as environment variables.');
+  }
+
   await transporter.sendMail({
-    from: `"AI Disaster Response 🚨" <${process.env.GMAIL_USER}>`,
+    from: `"AI Disaster Response 🚨" <${GMAIL_USER}>`,
     to,
     subject: `${otp} — Your Verification Code`,
     html: `
@@ -50,6 +79,7 @@ async function sendOTPEmail(to, name, otp) {
 // POST /api/auth/send-otp  { email, name, purpose }
 // ════════════════════════════════════════════════════════════
 exports.sendOTP = async (req, res) => {
+  console.log('📨 POST /api/auth/send-otp called with:', JSON.stringify(req.body));
   try {
     const { email, name = 'User', purpose = 'register' } = req.body;
     if (!email) return res.status(400).json({ message: 'Email is required' });
@@ -67,19 +97,22 @@ exports.sendOTP = async (req, res) => {
     }
 
     const otp = genOTP();
+    console.log(`🔑 Generated OTP for ${lowerEmail}: ${otp}`);
 
     // Delete any old OTP for this email+purpose
     await OTP.deleteMany({ email: lowerEmail, purpose });
 
     // Save new OTP
     await OTP.create({ email: lowerEmail, otp, purpose });
+    console.log(`💾 OTP saved to database for ${lowerEmail}`);
 
     // Send email
     await sendOTPEmail(lowerEmail, name, otp);
+    console.log(`✅ OTP email sent successfully to ${lowerEmail}`);
 
     res.json({ success: true, message: `OTP sent to ${email}` });
   } catch (err) {
-    console.error('sendOTP error:', err.message);
+    console.error('❌ sendOTP error:', err.message);
     res.status(500).json({ message: 'Failed to send OTP: ' + err.message });
   }
 };
