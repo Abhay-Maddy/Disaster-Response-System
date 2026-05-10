@@ -1,7 +1,7 @@
 # ── Environment & secrets ────────────────────────────────────────
 .env
-.env.*
-*.local
+backend/.env
+node_modules
 
 # ── Editor / OS junk ─────────────────────────────────────────────
 .vscode/
